@@ -1,0 +1,42 @@
+services:
+  portal:
+    build: .
+    ports:
+      - "8500:8500"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    depends_on:
+      - job-tracker
+      - todolist
+      - email-reader
+      - calendar
+
+  job-tracker:
+    build: ./tools/job-tracker
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./tools/job-tracker/config.yaml:/app/config.yaml
+      - ./tools/job-tracker/data:/app/data
+
+  todolist:
+    build: ./tools/todolist
+    ports:
+      - "8502:8502"
+    volumes:
+      - ./tools/todolist/dashboard.html:/app/dashboard.html
+
+  email-reader:
+    build: ./tools/email-reader
+    ports:
+      - "8503:8503"
+    volumes:
+      - ./tools/email-reader/config.yaml:/app/config.yaml
+      - ./tools/email-reader/data:/app/data
+
+  calendar:
+    build: ./tools/calendar
+    ports:
+      - "8505:8505"
+    volumes:
+      - ./tools/calendar/data:/app/data

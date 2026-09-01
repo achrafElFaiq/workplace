@@ -1,0 +1,55 @@
+{
+  "exportedAt": "2026-04-22T18:54:57.161Z",
+  "version": 2,
+  "projects": [
+    {
+      "id": "moaev6x8ivxc",
+      "name": "Voyage Italie",
+      "emoji": "🌍",
+      "color": "#0ea5e9",
+      "deadline": null,
+      "archived": false,
+      "tasks": [
+        {
+          "id": "moaevgj5e2mw",
+          "title": "Billet FlixBus",
+          "done": false,
+          "dueDate": null,
+          "priority": null,
+          "doneAt": null,
+          "createdAt": "2026-04-22T18:53:50.321Z"
+        },
+        {
+          "id": "moaevm1chcqw",
+          "title": "Réservation hostel",
+          "done": false,
+          "dueDate": null,
+          "priority": null,
+          "doneAt": null,
+          "createdAt": "2026-04-22T18:53:57.456Z"
+        }
+      ],
+      "createdAt": "2026-04-22T18:53:37.868Z"
+    },
+    {
+      "id": "moaew45coov4",
+      "name": "Learn Langgraph",
+      "emoji": "📁",
+      "color": "#4f46e5",
+      "deadline": null,
+      "archived": false,
+      "tasks": [],
+      "createdAt": "2026-04-22T18:54:20.928Z"
+    },
+    {
+      "id": "moaewdgq2gu8",
+      "name": "Projet Amine personal branding",
+      "emoji": "📁",
+      "color": "#4f46e5",
+      "deadline": null,
+      "archived": false,
+      "tasks": [],
+      "createdAt": "2026-04-22T18:54:33.002Z"
+    }
+  ]
+}

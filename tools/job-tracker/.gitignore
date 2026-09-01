@@ -1,0 +1,24 @@
+.env
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+data/data/syncs/
+data/syncs/
+data/last_check.json
+data/tracker.db
+
+# Personal CV / cover letter — contains PII, never commit
+data/cv.tex
+data/cover_letter_template.tex
+data/a.png
+data/a.jpg
+data/a.jpeg
+data/photo.jpeg
+data/photo.jpg
+data/photo.png
+data/guide/
+data/generated/

@@ -1,0 +1,8 @@
+[project]
+name = "calendar"
+version = "0.1.0"
+description = "Local calendar with event tracking"
+requires-python = ">=3.13"
+dependencies = [
+    "streamlit>=1.58.0",
+]

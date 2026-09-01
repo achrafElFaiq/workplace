@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tasks_</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:             #fafaf5;
+            --bg-secondary:   #f0f0e8;
+            --primary:        #2d6a4f;
+            --primary-hover:  #1b4332;
+            --text:           #1a1a1a;
+            --text-muted:     #888888;
+            --border:         #d4d4c8;
+            --border-light:   #eeeeee;
+            --red:            #a4343a;
+            --red-fill:       rgba(164,52,58,0.08);
+            --orange:         #b06e00;
+            --orange-fill:    rgba(176,110,0,0.08);
+            --r:              6px;
+        }
+
+        html, body { height: 100%; overflow: hidden; }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Layout ─────────────────────────────── */
+        .app { display: flex; position: fixed; inset: 0; overflow: hidden; }
+
+        /* ── Sidebar ────────────────────────────── */
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 14px 10px;
+        }
+
+        .sidebar-heading {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .new-btn {
+            padding: 4px 10px;
+            border-radius: var(--r);
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .new-btn:hover { background: var(--primary); color: var(--bg); }
+
+        .sidebar-section-lbl {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 10px 16px 3px;
+        }
+
+        .sidebar-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2px 8px;
+        }
+
+        .s-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px 10px;
+            border-radius: var(--r);
+            cursor: pointer;
+            transition: background 0.1s;
+            user-select: none;
+        }
+        .s-item:hover   { background: rgba(45,106,79,0.06); }
+        .s-item.s-active { background: rgba(45,106,79,0.1); }
+
+        .s-dot {
+            width: 6px; height: 6px;
+            border-radius: 1px;
+            flex-shrink: 0;
+            transform: rotate(45deg);
+        }
+
+        .s-label {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .s-badge {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .s-badge.s-over { color: var(--red); font-weight: 700; }
+
+        .s-divider { height: 1px; background: var(--border); margin: 6px 10px; }
+
+        .sidebar-footer {
+            padding: 6px 8px 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .s-util {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px 10px;
+            border-radius: var(--r);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text-muted);
+            font-family: inherit;
+            transition: all 0.1s;
+            text-align: left;
+        }
+        .s-util:hover    { background: rgba(45,106,79,0.06); color: var(--text); }
+        .s-util.s-active { background: rgba(45,106,79,0.1); color: var(--primary); font-weight: 700; }
+
+        .s-icon {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* ── Content ────────────────────────────── */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* ── Content header ─────────────────────── */
+        .c-head {
+            padding: 28px 28px 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .c-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1.1;
+        }
+
+        .c-accent {
+            width: 8px; height: 8px;
+            border-radius: 1px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            transform: rotate(45deg);
+        }
+
+        .c-sub {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .c-actions {
+            display: flex; gap: 7px; align-items: center;
+            padding-top: 3px; flex-shrink: 0;
+        }
+
+        /* Pill buttons — terminal style */
+        .pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 14px;
+            border-radius: var(--r);
+            font-size: 12px; font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .p-blue {
+            background: var(--primary); color: var(--bg);
+            border: 1px solid var(--primary);
+        }
+        .p-blue:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+        .p-gray {
+            background: transparent; color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .p-gray:hover { border-color: var(--primary); color: var(--primary); }
+        .p-red {
+            background: transparent; color: var(--red);
+            border: 1px solid var(--red);
+        }
+        .p-red:hover { background: var(--red); color: var(--bg); }
+        .p-sm { padding: 4px 12px; font-size: 12px; }
+
+        /* ── Progress ───────────────────────────── */
+        .c-progress { padding: 14px 28px 0; }
+
+        .prog-track {
+            height: 2px;
+            background: var(--border);
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        .prog-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.5s ease;
+        }
+        .prog-meta {
+            display: flex; justify-content: space-between;
+            font-size: 11px; color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Chips */
+        .chip {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 8px;
+            border-radius: var(--r);
+            font-size: 11px; font-weight: 700;
+            border: 1px solid;
+        }
+        .ch-gray   { border-color: var(--border); color: var(--text-muted); }
+        .ch-orange { border-color: var(--orange); color: var(--orange); }
+        .ch-red    { border-color: var(--red); color: var(--red); }
+        .ch-green  { border-color: var(--primary); color: var(--primary); }
+
+        /* ── Task area ──────────────────────────── */
+        .c-tasks { padding: 16px 28px 32px; flex: 1; }
+
+        .task-card {
+            background: var(--bg);
+            border-radius: var(--r);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        /* ── Task row ─────────────────────────────── */
+        .t-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-light);
+            transition: background 0.1s;
+            position: relative;
+            min-height: 44px;
+        }
+        .t-row:last-child { border-bottom: none; }
+        .t-row:hover { background: rgba(45,106,79,0.03); }
+        .t-row.t-done { opacity: 0.35; }
+
+        .t-row.t-over::before {
+            content: '';
+            position: absolute; left: 0; top: 4px; bottom: 4px;
+            width: 2px;
+            background: var(--red);
+        }
+
+        /* Checkbox — square terminal style */
+        .t-chk {
+            width: 18px; height: 18px; border-radius: 2px;
+            border: 1.5px solid;
+            cursor: pointer; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.18s;
+            background: transparent;
+            font-size: 11px;
+            font-weight: 700;
+            color: transparent;
+        }
+        .t-chk:hover { opacity: 0.75; }
+        .t-chk.pri-high   { border-color: var(--red); }
+        .t-chk.pri-medium { border-color: var(--orange); }
+        .t-chk.pri-low    { border-color: var(--primary); }
+        .t-chk.pri-none   { border-color: var(--border); }
+        .t-chk.t-checked  { background: var(--primary); border-color: var(--primary); color: var(--bg); }
+
+        .t-body { flex: 1; min-width: 0; }
+
+        .t-name {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text);
+            line-height: 1.4;
+        }
+        .t-name.t-struck {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .t-meta {
+            display: flex; align-items: center; gap: 6px;
+            margin-top: 2px; flex-wrap: wrap;
+        }
+
+        .t-cap {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+        .t-cap.cap-red    { color: var(--red); font-weight: 700; }
+        .t-cap.cap-orange { color: var(--orange); }
+        .t-cap.cap-blue   { color: var(--primary); }
+        .t-cap-dot        { color: var(--text-muted); font-size: 9px; }
+
+        .pri-label {
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .pri-high   { color: var(--red); }
+        .pri-medium { color: var(--orange); }
+        .pri-low    { color: var(--primary); }
+
+        .t-btns {
+            display: flex; gap: 2px;
+            opacity: 0; transition: opacity 0.12s;
+            flex-shrink: 0;
+        }
+        .t-row:hover .t-btns { opacity: 1; }
+
+        .icn {
+            width: 28px; height: 28px; border-radius: var(--r);
+            border: none; background: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); transition: all 0.12s;
+            font-family: inherit; font-size: 11px; font-weight: 700;
+        }
+        .icn:hover           { background: rgba(45,106,79,0.08); color: var(--primary); }
+        .icn.i-del:hover     { background: var(--red-fill); color: var(--red); }
+
+        /* ── Task expand ─────────────────────────── */
+        .t-expand {
+            background: var(--bg-secondary);
+            padding: 10px 14px 14px 44px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+            animation: slideDown 0.14s ease;
+        }
+        @keyframes slideDown {
+            from { opacity:0; transform:translateY(-4px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .fl { display: flex; flex-direction: column; gap: 4px; }
+        .fl-lbl {
+            font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+        .fl-ctrl {
+            padding: 6px 10px;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            font-size: 13px; color: var(--text);
+            background: var(--bg); outline: none; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .fl-ctrl:focus { border-color: var(--primary); border-style: solid; }
+
+        /* ── Add task row ────────────────────────── */
+        .add-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .add-ring {
+            width: 18px; height: 18px; border-radius: 2px;
+            border: 1.5px dashed var(--border);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .add-input {
+            flex: 1; border: none; outline: none;
+            font-size: 13px; font-weight: 400;
+            color: var(--text);
+            background: none; font-family: inherit;
+        }
+        .add-input::placeholder { color: var(--text-muted); }
+
+        /* ── Completed divider ───────────────────── */
+        .done-toggle {
+            display: flex; align-items: center; gap: 9px;
+            padding: 14px 28px 6px;
+            cursor: pointer; border: none; background: none;
+            width: 100%; font-family: inherit;
+        }
+        .done-line { flex: 1; height: 1px; background: var(--border); }
+        .done-lbl {
+            font-size: 11px; font-weight: 700;
+            color: var(--text-muted);
+            white-space: nowrap;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        /* ── Welcome screen ─────────────────────── */
+        .welcome {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 8px; padding: 48px;
+        }
+        .welcome-icon { color: var(--text-muted); margin-bottom: 8px; font-size: 28px; font-weight: 700; }
+        .welcome-h {
+            font-size: 18px; font-weight: 700;
+            color: var(--primary);
+        }
+        .welcome-p {
+            font-size: 12px; font-weight: 400;
+            text-align: center; max-width: 320px;
+            line-height: 1.7; color: var(--text-muted);
+        }
+
+        /* ── Archive view ───────────────────────── */
+        .arch-head { padding: 28px 28px 16px; }
+        .arch-title {
+            font-size: 28px; font-weight: 700;
+            color: var(--primary);
+        }
+
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 16px;
+            padding: 0 28px 32px;
+        }
+
+        .arch-card {
+            background: var(--bg);
+            border-radius: var(--r);
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+        .arch-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+        .arch-card-name {
+            font-size: 13px; font-weight: 700;
+            color: var(--text);
+        }
+        .arch-card-meta {
+            font-size: 11px; font-weight: 400;
+            color: var(--text-muted); margin-bottom: 14px; margin-left: 14px;
+        }
+        .arch-card-btns { display: flex; gap: 7px; }
+
+        /* ── Modal ──────────────────────────────── */
+        .overlay {
+            position: fixed; inset: 0;
+            background: rgba(26,26,26,0.2);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9000;
+            animation: ovIn 0.14s ease;
+        }
+        @keyframes ovIn { from{opacity:0} to{opacity:1} }
+
+        .modal {
+            background: var(--bg);
+            border-radius: var(--r);
+            padding: 22px 24px;
+            width: 400px; max-width: 92vw;
+            border: 1px solid var(--border);
+            animation: modIn 0.15s ease;
+        }
+        @keyframes modIn {
+            from { transform: translateY(6px); opacity:0; }
+            to   { transform: translateY(0); opacity:1; }
+        }
+
+        .modal-head {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .modal-title {
+            font-size: 18px; font-weight: 700;
+            color: var(--primary);
+        }
+        .modal-x {
+            width: 28px; height: 28px; border-radius: var(--r);
+            background: transparent; border: 1px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); transition: all 0.1s;
+            font-family: inherit; font-size: 12px; font-weight: 700;
+        }
+        .modal-x:hover { border-color: var(--red); color: var(--red); }
+
+        .mf { margin-bottom: 14px; }
+        .mf label {
+            display: block;
+            font-size: 11px; font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted); margin-bottom: 6px;
+        }
+
+        .m-input {
+            width: 100%; padding: 9px 12px;
+            border: 1px dashed #ccc; border-radius: 4px;
+            font-size: 13px; font-weight: 400;
+            color: var(--text); outline: none;
+            font-family: inherit; background: var(--bg); transition: all 0.15s;
+        }
+        .m-input:focus { border-color: var(--primary); border-style: solid; }
+
+        .em-row { display: flex; gap: 4px; flex-wrap: wrap; }
+        .em-opt {
+            width: 34px; height: 34px; border-radius: var(--r); font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border: 1px solid var(--border-light);
+            background: var(--bg-secondary); transition: all 0.12s;
+            font-family: inherit; font-weight: 700; color: var(--text-muted);
+        }
+        .em-opt:hover { border-color: var(--primary); color: var(--primary); }
+        .em-opt.em-sel { border-color: var(--primary); background: rgba(45,106,79,0.08); color: var(--primary); }
+
+        .clr-row { display: flex; gap: 7px; flex-wrap: wrap; }
+        .clr-opt {
+            width: 20px; height: 20px; border-radius: 2px;
+            cursor: pointer; border: 2px solid transparent;
+            transition: transform 0.12s; position: relative;
+            transform: rotate(45deg);
+        }
+        .clr-opt:hover { transform: rotate(45deg) scale(1.2); }
+        .clr-opt.clr-sel { border-color: var(--text); }
+
+        .modal-foot {
+            display: flex; gap: 7px; justify-content: flex-end;
+            margin-top: 18px; padding-top: 14px;
+            border-top: 1px solid var(--border-light);
+            align-items: center;
+        }
+
+        /* ── Toast ──────────────────────────────── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--text);
+            color: var(--bg); padding: 9px 15px;
+            border-radius: var(--r);
+            font-size: 12px; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            z-index: 9999; animation: tIn 0.15s ease;
+        }
+        @keyframes tIn {
+            from { transform: translateY(8px); opacity:0; }
+            to   { transform: translateY(0); opacity:1; }
+        }
+
+        /* ── Scrollbar ──────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─── Terminal icon library — text-based, no SVG emoji ──────────────────────────
+const IC = {
+    plus:    '+',
+    pencil:  '~',
+    xmark:   'x',
+    chevronRight: '>',
+    chevronDown:  'v',
+};
+
+// ─── Config ────────────────────────────────────────────────────────────────────
+const COLORS = ['#2d6a4f','#1b4332','#5a8a6f','#a4343a','#b06e00','#5856d6','#3a7ca5','#636366','#8b6f47','#2f4858'];
+// Terminal-style labels instead of emoji
+const LABELS = ['>_','::','##','>>','**','--','~~','++','%%','&&','//','!!','@@','$$','^^','<<','{}','[]','()',';;'];
+
+// ─── State ─────────────────────────────────────────────────────────────────────
+let S = {
+    view: 'project',
+    selectedId: null,
+    projects: [],
+    showDone: {},
+    expandTask: null,
+    modal: null,
+};
+
+// ─── Persistence ───────────────────────────────────────────────────────────────
+function load() {
+    try { const r = localStorage.getItem('tasks-v3'); if (r) S.projects = JSON.parse(r).projects || []; } catch {}
+}
+function save() { localStorage.setItem('tasks-v3', JSON.stringify({ projects: S.projects })); }
+
+// ─── Utils ─────────────────────────────────────────────────────────────────────
+const uid     = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+const today   = () => new Date().toISOString().split('T')[0];
+const esc     = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const isOver  = d => !!d && d < today();
+const isToday = d => d === today();
+const daysLeft= d => { if (!d) return null; return Math.round((new Date(d+'T12:00:00') - new Date()) / 86400000); };
+const isSoon  = d => { const du = daysLeft(d); return du !== null && du > 0 && du <= 2; };
+
+function fmtDate(d) {
+    if (!d) return '';
+    const du = daysLeft(d);
+    if (du === 0) return 'today';
+    if (du === 1) return 'tomorrow';
+    if (du === -1) return 'yesterday';
+    if (du > 1 && du < 8) return `in ${du}d`;
+    if (du < 0 && du > -8) return `${Math.abs(du)}d ago`;
+    return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}).toLowerCase();
+}
+
+function sortTasks(tasks) {
+    const p = { high:0, medium:1, low:2 };
+    return [...tasks].sort((a,b) => {
+        const ao = !a.done && isOver(a.dueDate), bo = !b.done && isOver(b.dueDate);
+        if (ao !== bo) return ao ? -1 : 1;
+        const ap = p[a.priority]??3, bp = p[b.priority]??3;
+        if (ap !== bp) return ap - bp;
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1; if (b.dueDate) return 1;
+        return 0;
+    });
+}
+
+const getProj = id => S.projects.find(p => p.id === id);
+
+// ─── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg) {
+    document.querySelectorAll('.toast').forEach(e => e.remove());
+    const el = document.createElement('div');
+    el.className = 'toast'; el.textContent = '[ok] ' + msg; document.body.appendChild(el);
+    setTimeout(() => { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 1900);
+}
+
+// ─── Actions ───────────────────────────────────────────────────────────────────
+function createProj(d) {
+    const p = { id:uid(), name:d.name, emoji:d.emoji||'>_', color:d.color||COLORS[0], deadline:d.deadline||null, archived:false, tasks:[], createdAt:new Date().toISOString() };
+    S.projects.push(p); save(); return p;
+}
+function updateProj(id, d) { const p = getProj(id); if (p) { Object.assign(p, d); save(); } }
+function deleteProj(id) { S.projects = S.projects.filter(p => p.id !== id); if (S.selectedId === id) S.selectedId = null; save(); toast('project deleted'); }
+function archiveProj(id) { updateProj(id,{archived:true}); S.selectedId = null; save(); toast('archived'); }
+function unarchiveProj(id) { updateProj(id,{archived:false}); save(); toast('restored'); render(); }
+
+function addTask(pid, title) {
+    const p = getProj(pid); if (!p || !title.trim()) return;
+    p.tasks.push({ id:uid(), title:title.trim(), done:false, dueDate:null, priority:null, doneAt:null, createdAt:new Date().toISOString() });
+    save();
+}
+function updateTask(pid, tid, data) {
+    const p = getProj(pid); if (!p) return;
+    const t = p.tasks.find(t => t.id === tid); if (!t) return;
+    Object.assign(t, data);
+    if (data.done !== undefined) t.doneAt = data.done ? new Date().toISOString() : null;
+    save();
+}
+function deleteTask(pid, tid) { const p = getProj(pid); if (!p) return; p.tasks = p.tasks.filter(t => t.id !== tid); save(); toast('task removed'); }
+
+// ─── Export / Import ───────────────────────────────────────────────────────────
+function exportData() {
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), version: 3, projects: S.projects }, null, 2)], { type:'application/json' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `tasks-${today()}.json` });
+    a.click(); URL.revokeObjectURL(a.href); toast('exported');
+}
+function importData(file) {
+    const r = new FileReader();
+    r.onload = e => {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            const inc = parsed.projects || (Array.isArray(parsed) ? parsed : null);
+            if (!inc) { alert('invalid file.'); return; }
+            if (!confirm(`Replace current data with ${inc.length} project(s)?`)) return;
+            S.projects = inc; save(); render(); toast(`imported ${inc.length} project${inc.length !== 1?'s':''}`);
+        } catch { alert('could not read file.'); }
+    };
+    r.readAsText(file);
+}
+
+// ─── Render ────────────────────────────────────────────────────────────────────
+function render() { document.getElementById('app').innerHTML = html(); bind(); }
+
+function html() {
+    return `<div class="app">${sidebar()}${content()}</div>${modal()}`;
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+function sidebar() {
+    const active = S.projects.filter(p => !p.archived)
+        .sort((a,b) => { if (a.deadline&&b.deadline) return a.deadline.localeCompare(b.deadline); if (a.deadline) return -1; if (b.deadline) return 1; return 0; });
+
+    const items = active.map(p => {
+        const open = p.tasks.filter(t => !t.done).length;
+        const over = p.tasks.filter(t => !t.done && isOver(t.dueDate)).length;
+        const sel = S.view === 'project' && S.selectedId === p.id;
+        return `
+        <div class="s-item ${sel?'s-active':''}" data-sel="${p.id}">
+            <div class="s-dot" style="background:${p.color}"></div>
+            <span class="s-label">${esc(p.name)}</span>
+            ${over > 0 ? `<span class="s-badge s-over">[!]${over}</span>` : open > 0 ? `<span class="s-badge">${open}</span>` : ''}
+        </div>`;
+    }).join('');
+
+    return `
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <span class="sidebar-heading">> tasks_</span>
+            <button class="new-btn" id="new-proj-btn" title="New project">[+]</button>
+        </div>
+        <div class="sidebar-section-lbl">projects</div>
+        <div class="sidebar-list">
+            ${items || `<div style="padding:8px 10px;font-size:12px;color:var(--text-muted)">[.] no projects</div>`}
+        </div>
+        <div class="sidebar-footer">
+            <div class="s-divider"></div>
+            <button class="s-util ${S.view==='archive'?'s-active':''}" id="archive-nav">
+                <span class="s-icon">[~]</span>archive
+            </button>
+            <button class="s-util" id="export-btn">
+                <span class="s-icon">[>]</span>export
+            </button>
+            <button class="s-util" id="import-btn">
+                <span class="s-icon">[<]</span>import
+            </button>
+            <input type="file" id="import-file" accept=".json" style="display:none">
+        </div>
+    </aside>`;
+}
+
+// ── Content ────────────────────────────────────────────────────────────────────
+function content() {
+    if (S.view === 'archive') return `<main class="content">${archiveView()}</main>`;
+    if (!S.selectedId)        return `<main class="content">${welcomeView()}</main>`;
+    return `<main class="content">${projectView()}</main>`;
+}
+
+function welcomeView() {
+    return `
+    <div class="welcome">
+        <div class="welcome-icon">>_</div>
+        <div class="welcome-h">[.] no project selected</div>
+        <div class="welcome-p">select a project from the sidebar or create a new one to get started.</div>
+        <button class="pill p-blue" id="welcome-new" style="margin-top:12px">[+] new project</button>
+    </div>`;
+}
+
+function projectView() {
+    const p = getProj(S.selectedId); if (!p) return welcomeView();
+    const open    = sortTasks(p.tasks.filter(t => !t.done));
+    const done    = p.tasks.filter(t => t.done);
+    const total   = p.tasks.length;
+    const pct     = total > 0 ? Math.round(done.length / total * 100) : 0;
+    const du      = daysLeft(p.deadline);
+    const overCt  = open.filter(t => isOver(t.dueDate)).length;
+    const showDone = S.showDone[p.id];
+
+    let dlChip = '';
+    if (p.deadline) {
+        const label = du === 0 ? 'due today' : du < 0 ? `${Math.abs(du)}d overdue` : `${fmtDate(p.deadline)} | ${du}d left`;
+        const cls   = du < 0 ? 'ch-red' : du <= 3 ? 'ch-orange' : 'ch-gray';
+        dlChip = `<span class="chip ${cls}">${label}</span>`;
+    }
+
+    return `
+    <div class="c-head">
+        <div>
+            <div class="c-title">
+                <div class="c-accent" style="background:${p.color}"></div>> ${esc(p.name)}
+            </div>
+            <div class="c-sub">
+                <span>${open.length} remaining${done.length > 0 ? ` | ${done.length} done` : ''}</span>
+                ${overCt > 0 ? `<span class="chip ch-red">[!] ${overCt} overdue</span>` : ''}
+                ${dlChip}
+            </div>
+        </div>
+        <div class="c-actions">
+            <button class="pill p-gray p-sm" data-edit-proj="${p.id}">[~] edit</button>
+            <button class="pill p-gray p-sm" data-archive-proj="${p.id}">[~] archive</button>
+        </div>
+    </div>
+
+    ${total > 0 ? `
+    <div class="c-progress">
+        <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${p.color}"></div></div>
+        <div class="prog-meta"><span>${pct}% complete</span><span>${done.length}/${total}</span></div>
+    </div>` : ''}
+
+    <div class="c-tasks">
+        <div class="task-card">
+            ${open.map(t => taskRow(p.id, t)).join('')}
+            <div class="add-row">
+                <div class="add-ring">+</div>
+                <input class="add-input" id="add-input" placeholder="new task..." autocomplete="off">
+                <button class="pill p-blue p-sm" id="add-btn">[+] add</button>
+            </div>
+        </div>
+
+        ${done.length > 0 ? `
+        <button class="done-toggle" data-toggle-done="${p.id}">
+            <div class="done-line"></div>
+            <div class="done-lbl">
+                ${showDone ? IC.chevronDown : IC.chevronRight}
+                ${done.length} completed
+            </div>
+            <div class="done-line"></div>
+        </button>
+        ${showDone ? `<div class="task-card">${done.map(t => taskRow(p.id, t)).join('')}</div>` : ''}
+        ` : ''}
+    </div>`;
+}
+
+// ── Task row ───────────────────────────────────────────────────────────────────
+function taskRow(pid, t) {
+    const over  = !t.done && isOver(t.dueDate);
+    const tod   = !t.done && isToday(t.dueDate);
+    const soon  = !t.done && isSoon(t.dueDate);
+    const exp   = S.expandTask === t.id;
+
+    const priRing = t.done ? 't-checked' : { high:'pri-high', medium:'pri-medium', low:'pri-low' }[t.priority] || 'pri-none';
+
+    let dueHtml = '';
+    if (t.dueDate && !t.done) {
+        const cls = over ? 'cap-red' : tod ? 'cap-orange' : soon ? 'cap-blue' : '';
+        dueHtml = `<span class="t-cap ${cls}">${fmtDate(t.dueDate)}</span>`;
+    }
+
+    let priHtml = '';
+    if (t.priority && !t.done) {
+        const label = { high:'[!] high', medium:'[.] medium', low:'[~] low' }[t.priority];
+        const cls   = { high:'pri-high', medium:'pri-medium', low:'pri-low' }[t.priority];
+        priHtml = `<span class="pri-label ${cls}">${label}</span>`;
+    }
+
+    const hasMeta = dueHtml || priHtml;
+    const metaHtml = hasMeta ? `<div class="t-meta">${dueHtml}${dueHtml && priHtml ? `<span class="t-cap-dot">|</span>` : ''}${priHtml}</div>` : '';
+
+    return `
+    <div class="t-row ${t.done?'t-done':''} ${over?'t-over':''}">
+        <div class="t-chk ${priRing}" data-chk="${pid}:${t.id}">${t.done ? 'x' : ''}</div>
+        <div class="t-body">
+            <div class="t-name ${t.done?'t-struck':''}">${esc(t.title)}</div>
+            ${metaHtml}
+        </div>
+        <div class="t-btns">
+            <button class="icn" data-exp="${t.id}" title="Edit">~</button>
+            <button class="icn i-del" data-del-task="${pid}:${t.id}" title="Remove">x</button>
+        </div>
+    </div>
+    ${exp ? taskExpand(pid, t) : ''}`;
+}
+
+function taskExpand(pid, t) {
+    return `
+    <div class="t-expand">
+        <div class="fl">
+            <div class="fl-lbl">due date</div>
+            <input type="date" class="fl-ctrl" id="exp-due-${t.id}" value="${t.dueDate||''}">
+        </div>
+        <div class="fl">
+            <div class="fl-lbl">priority</div>
+            <select class="fl-ctrl" id="exp-pri-${t.id}">
+                <option value="">none</option>
+                <option value="high"   ${t.priority==='high'?'selected':''}>high</option>
+                <option value="medium" ${t.priority==='medium'?'selected':''}>medium</option>
+                <option value="low"    ${t.priority==='low'?'selected':''}>low</option>
+            </select>
+        </div>
+        <button class="pill p-blue p-sm" data-save-task="${pid}:${t.id}">[ok] save</button>
+        <button class="pill p-gray p-sm" data-cancel-exp>[x] cancel</button>
+    </div>`;
+}
+
+// ── Archive ────────────────────────────────────────────────────────────────────
+function archiveView() {
+    const archived = S.projects.filter(p => p.archived);
+    return `
+    <div class="arch-head">
+        <div class="arch-title">> archive_</div>
+    </div>
+    ${archived.length === 0 ? `
+    <div class="welcome" style="padding-top:40px">
+        <div class="welcome-icon">[~]</div>
+        <div class="welcome-h">[.] nothing archived yet</div>
+        <div class="welcome-p">completed projects you archive will appear here.</div>
+    </div>` : `
+    <div class="arch-grid">
+        ${archived.map(p => {
+            const total = p.tasks.length, done = p.tasks.filter(t=>t.done).length;
+            return `
+            <div class="arch-card">
+                <div class="arch-card-top">
+                    <div class="s-dot" style="background:${p.color}"></div>
+                    <div class="arch-card-name">${esc(p.name)}</div>
+                </div>
+                <div class="arch-card-meta">${done}/${total} tasks done${p.deadline ? ` | ${fmtDate(p.deadline)}` : ''}</div>
+                <div class="arch-card-btns">
+                    <button class="pill p-gray p-sm" data-unarchive="${p.id}">[<] restore</button>
+                    <button class="pill p-red p-sm" data-delete-proj="${p.id}">[x] delete</button>
+                </div>
+            </div>`;
+        }).join('')}
+    </div>`}`;
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+function modal() {
+    if (!S.modal || S.modal.type !== 'project') return '';
+    const d = S.modal.data, editing = !!d.id;
+    return `
+    <div class="overlay" id="overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <div class="modal-title">> ${editing ? 'edit project' : 'new project'}</div>
+                <button class="modal-x" id="modal-close">[x]</button>
+            </div>
+            <div class="mf">
+                <label>name</label>
+                <input class="m-input" id="m-name" value="${esc(d.name||'')}" placeholder="project name" autocomplete="off">
+            </div>
+            <div class="mf">
+                <label>label</label>
+                <div class="em-row">${LABELS.map(e=>`<div class="em-opt ${d.emoji===e?'em-sel':''}" data-emoji="${e}">${e}</div>`).join('')}</div>
+            </div>
+            <div class="mf">
+                <label>color</label>
+                <div class="clr-row">${COLORS.map(c=>`<div class="clr-opt ${d.color===c?'clr-sel':''}" style="background:${c}" data-color="${c}"></div>`).join('')}</div>
+            </div>
+            <div class="mf">
+                <label>deadline <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+                <input type="date" class="m-input" id="m-deadline" value="${d.deadline||''}">
+            </div>
+            <div class="modal-foot">
+                ${editing ? `<button class="pill p-red p-sm" id="m-delete" style="margin-right:auto">[x] delete</button>` : ''}
+                <button class="pill p-gray p-sm" id="m-cancel">[x] cancel</button>
+                <button class="pill p-blue p-sm" id="m-save">${editing ? '[ok] save' : '[+] create'}</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+// ─── Bind ──────────────────────────────────────────────────────────────────────
+function bind() {
+    const on = (id, ev, fn) => document.getElementById(id)?.addEventListener(ev, fn);
+    const all = (sel, ev, fn) => document.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
+
+    on('new-proj-btn', 'click', () => { S.modal={type:'project',data:{emoji:'>_',color:COLORS[0]}}; render(); });
+    on('welcome-new',  'click', () => { S.modal={type:'project',data:{emoji:'>_',color:COLORS[0]}}; render(); });
+    on('archive-nav',  'click', () => { S.view='archive'; S.selectedId=null; render(); });
+    on('export-btn',   'click', exportData);
+
+    const imp = document.getElementById('import-btn'), impFile = document.getElementById('import-file');
+    if (imp && impFile) {
+        imp.addEventListener('click', () => impFile.click());
+        impFile.addEventListener('change', e => { if(e.target.files[0]){ importData(e.target.files[0]); e.target.value=''; } });
+    }
+
+    all('[data-sel]',          'click', e => { S.view='project'; S.selectedId=e.currentTarget.dataset.sel; render(); });
+    all('[data-edit-proj]',    'click', e => { e.stopPropagation(); const p=getProj(e.currentTarget.dataset.editProj); if(p){S.modal={type:'project',data:{...p}};render();} });
+    all('[data-archive-proj]', 'click', e => { e.stopPropagation(); if(confirm('Archive this project?')){archiveProj(e.currentTarget.dataset.archiveProj);render();} });
+    all('[data-delete-proj]',  'click', e => { e.stopPropagation(); if(confirm('Delete project and all its tasks?')){deleteProj(e.currentTarget.dataset.deleteProj);render();} });
+    all('[data-unarchive]',    'click', e => unarchiveProj(e.currentTarget.dataset.unarchive));
+
+    all('[data-chk]', 'click', e => {
+        const [pid,tid] = e.currentTarget.dataset.chk.split(':');
+        const p = getProj(pid), t = p?.tasks.find(t=>t.id===tid); if(!t) return;
+        const nowDone = !t.done;
+        updateTask(pid,tid,{done:nowDone});
+        if (nowDone) toast('completed');
+        if (nowDone && p.tasks.every(t=>t.done) && p.tasks.length>0) {
+            setTimeout(()=>{ if(confirm('All tasks complete. Archive this project?')){archiveProj(pid);} render(); }, 160);
+            return;
+        }
+        render();
+    });
+
+    all('[data-exp]',       'click', e => { const tid=e.currentTarget.dataset.exp; S.expandTask=S.expandTask===tid?null:tid; render(); });
+    all('[data-cancel-exp]','click', ()=> { S.expandTask=null; render(); });
+
+    all('[data-save-task]', 'click', e => {
+        const [pid,tid]=e.currentTarget.dataset.saveTask.split(':');
+        updateTask(pid,tid,{ dueDate:document.getElementById(`exp-due-${tid}`)?.value||null, priority:document.getElementById(`exp-pri-${tid}`)?.value||null });
+        S.expandTask=null; toast('saved'); render();
+    });
+
+    all('[data-del-task]', 'click', e => {
+        e.stopPropagation();
+        const [pid,tid]=e.currentTarget.dataset.delTask.split(':');
+        if(confirm('Remove this task?')){ deleteTask(pid,tid); render(); }
+    });
+
+    all('[data-toggle-done]','click', e => { const id=e.currentTarget.dataset.toggleDone; S.showDone[id]=!S.showDone[id]; render(); });
+
+    // Add task
+    const addInput = document.getElementById('add-input'), addBtn = document.getElementById('add-btn');
+    if (addInput && addBtn && S.selectedId) {
+        const doAdd = () => { if(addInput.value.trim()){ addTask(S.selectedId,addInput.value); render(); setTimeout(()=>document.getElementById('add-input')?.focus(),20); } };
+        addBtn.addEventListener('click', doAdd);
+        addInput.addEventListener('keydown', e => { if(e.key==='Enter') doAdd(); });
+        setTimeout(() => addInput.focus(), 20);
+    }
+
+    // Modal
+    on('overlay',     'click', e => { if(e.target.id==='overlay'){S.modal=null;render();} });
+    on('modal-close', 'click', ()=> { S.modal=null; render(); });
+    on('m-cancel',    'click', ()=> { S.modal=null; render(); });
+    on('m-delete',    'click', ()=> { const id=S.modal?.data?.id; if(id&&confirm('Delete project?')){ S.modal=null; deleteProj(id); render(); } });
+    on('m-save',      'click', ()=> {
+        const name = document.getElementById('m-name')?.value?.trim();
+        if (!name) { document.getElementById('m-name')?.focus(); return; }
+        const deadline = document.getElementById('m-deadline')?.value || null;
+        const d = S.modal.data;
+        if (d.id) { updateProj(d.id,{name,emoji:d.emoji,color:d.color,deadline}); toast('updated'); }
+        else { const p=createProj({name,emoji:d.emoji||'>_',color:d.color||COLORS[0],deadline}); S.selectedId=p.id; S.view='project'; toast('project created'); }
+        S.modal=null; render();
+    });
+
+    // Label / Color
+    all('[data-emoji]', 'click', e => {
+        if(!S.modal) return; S.modal.data.emoji=e.currentTarget.dataset.emoji;
+        document.querySelectorAll('[data-emoji]').forEach(el=>el.classList.remove('em-sel'));
+        e.currentTarget.classList.add('em-sel');
+    });
+    all('[data-color]', 'click', e => {
+        if(!S.modal) return; S.modal.data.color=e.currentTarget.dataset.color;
+        document.querySelectorAll('[data-color]').forEach(el=>el.classList.remove('clr-sel'));
+        e.currentTarget.classList.add('clr-sel');
+    });
+
+    document.getElementById('m-name')?.addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('m-save')?.click(); });
+    setTimeout(() => document.getElementById('m-name')?.focus(), 60);
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+load();
+if (!S.selectedId) { const first = S.projects.find(p=>!p.archived); if (first) S.selectedId = first.id; }
+render();
+</script>
+</body>
+</html>

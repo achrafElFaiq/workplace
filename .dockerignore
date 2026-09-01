@@ -1,0 +1,7 @@
+__pycache__
+.pids
+.claude
+.idea
+.git
+.DS_Store
+*.pyc
