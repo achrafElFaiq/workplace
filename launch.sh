@@ -26,9 +26,9 @@ echo "  [..] Lancement du workspace..."
 echo $! > "$PID_DIR/job-tracker.pid"; disown $!
 echo "  [ok] Job Tracker    -> http://localhost:8501"
 
-(cd "$TOOLS_DIR/todolist" && python3 -m http.server 8502 2>/dev/null) &
+(cd "$TOOLS_DIR/todolist" && PORT=8502 uv run python app.py) &
 echo $! > "$PID_DIR/todolist.pid"; disown $!
-echo "  [ok] To Do List     -> http://localhost:8502/dashboard.html"
+echo "  [ok] To Do List     -> http://localhost:8502"
 
 (cd "$TOOLS_DIR/email-reader" && uv run streamlit run app.py --server.port 8503 --server.headless true) &
 echo $! > "$PID_DIR/email-reader.pid"; disown $!

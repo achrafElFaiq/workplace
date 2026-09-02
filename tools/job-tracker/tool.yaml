@@ -1,0 +1,9 @@
+name: Job Tracker
+slug: job-tracker
+description: Automatic job application tracking
+icon: "[>]"
+type: streamlit
+entry: app.py
+volumes:
+  - config.yaml:/app/config.yaml
+  - data:/app/data

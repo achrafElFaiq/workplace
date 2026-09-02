@@ -1,3 +1,5 @@
+import glob
+import os
 import re
 import socket
 import streamlit as st
@@ -5,18 +7,54 @@ import yaml
 
 st.set_page_config(page_title="Workspace", page_icon="~", layout="wide")
 
+DOCKER_MODE = os.environ.get("WORKSPACE_DOCKER", "") == "1"
+TOOLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
+
 
 def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-CONFIG_PATH = "config.yaml"
-
-
-def _load_config() -> dict:
-    with open(CONFIG_PATH) as f:
-        return yaml.safe_load(f) or {}
-
+def _discover_tools() -> list[dict]:
+    """Scan tools/*/tool.yaml manifests for auto-discovery."""
+    tools = []
+    for manifest_path in sorted(glob.glob(os.path.join(TOOLS_DIR, "*", "tool.yaml"))):
+        with open(manifest_path) as f:
+            manifest = yaml.safe_load(f) or {}
+        slug = manifest.get("slug") or _slugify(manifest.get("name", ""))
+        if not slug:
+            continue
+        tool = {
+            "name": manifest.get("name", slug),
+            "slug": slug,
+            "description": manifest.get("description", ""),
+            "type": manifest.get("type", "streamlit"),
+            "entry": manifest.get("entry", "app.py"),
+        }
+        if DOCKER_MODE:
+            tool["url"] = f"/tools/{slug}/"
+        else:
+            config_path = os.path.join(os.path.dirname(manifest_path), "..", "..", "config.yaml")
+            config_path = os.path.normpath(config_path)
+            try:
+                with open(config_path) as f:
+                    cfg = yaml.safe_load(f) or {}
+                tool_dir = os.path.basename(os.path.dirname(manifest_path))
+                match = next(
+                    (t for t in cfg.get("tools", [])
+                     if _slugify(t["name"]) == slug
+                     or t.get("path", "").rstrip("/").endswith(f"/{tool_dir}")),
+                    None,
+                )
+                if match:
+                    tool["url"] = match["url"]
+                    tool["port"] = match.get("port")
+                else:
+                    tool["url"] = f"http://localhost:8501"
+            except FileNotFoundError:
+                tool["url"] = f"http://localhost:8501"
+        tools.append(tool)
+    return tools
 
 
 @st.cache_data(ttl=8)
@@ -32,10 +70,10 @@ def _check_port(port: int) -> bool:
         s.close()
 
 
-_config = _load_config()
+_tools = _discover_tools()
 _active_slug = st.query_params.get("tool")
 _active_tool = next(
-    (t for t in _config.get("tools", []) if _slugify(t["name"]) == _active_slug),
+    (t for t in _tools if t["slug"] == _active_slug),
     None,
 ) if _active_slug else None
 
@@ -133,32 +171,59 @@ if _active_tool:
 
     st.stop()
 
-st.title("workspace")
+cards_html = ""
+for tool in _tools:
+    slug = tool["slug"]
+    cards_html += f"""
+    <a href="?tool={slug}" target="_self" class="ws-card">
+        <div class="ws-card-name">[&gt;] {slug}</div>
+        <div class="ws-card-desc">{tool['description']}</div>
+        <div class="ws-card-arrow">&rarr;</div>
+    </a>
+    """
 
-config = _load_config()
-cols = st.columns(3)
-for i, tool in enumerate(config.get("tools", [])):
-    port = tool.get("port")
-    is_up = _check_port(port) if port else False
-    status_label = "[ok]" if is_up else "[--]"
-    status_color = "#2d6a4f" if is_up else "#c0392b"
-    slug = _slugify(tool["name"])
+cards_html += """
+<div class="ws-card ws-card-add">
+    <div class="ws-card-name" style="color:#2d6a4f;">[+] ajouter une app</div>
+    <div class="ws-card-desc">Ajoutez vos outils personnalises</div>
+    <div class="ws-card-arrow">&rarr;</div>
+</div>
+"""
 
-    with cols[i % 3]:
-        st.html(f"""
-        <a href="?tool={slug}" target="_self" style="text-decoration:none;">
-            <div style="border:1px solid #d4d4c8; border-radius:6px; padding:24px;
-                        margin-bottom:16px; background:#fafaf5; cursor:pointer;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-family:'JetBrains Mono',monospace; font-size:16px;
-                                 font-weight:700; color:#2d6a4f;">[>] {tool['name']}</span>
-                    <span style="font-family:'JetBrains Mono',monospace; font-size:11px;
-                                 color:{status_color};">{status_label}</span>
-                </div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:12px;
-                            color:#888; margin-bottom:6px;">{tool['description']}</div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:11px;
-                            color:#aaa;">{tool['url']}</div>
-            </div>
-        </a>
-        """)
+st.html(f"""
+<style>
+    .ws-home {{ font-family: 'JetBrains Mono', monospace; margin: 0; padding: 32px 24px; }}
+    .ws-header {{ margin-bottom: 56px; }}
+    .ws-title {{ font-size: 36px; font-weight: 700; color: #1a1a1a; }}
+    .ws-title span {{ color: #2d6a4f; }}
+    .ws-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }}
+    .ws-card {{
+        display: flex; flex-direction: column; justify-content: space-between;
+        border: 1px solid #d4d4c8; border-radius: 6px; padding: 20px;
+        min-height: 120px; background: #fafaf5; text-decoration: none;
+        cursor: pointer; transition: border-color 0.15s;
+    }}
+    .ws-card:hover {{ border-color: #2d6a4f; }}
+    .ws-card-add {{
+        border-style: dashed; cursor: default;
+    }}
+    .ws-card-name {{
+        font-size: 15px; font-weight: 700; color: #2d6a4f; margin-bottom: 12px;
+    }}
+    .ws-card-desc {{
+        font-size: 12px; color: #888; line-height: 1.5; flex: 1;
+    }}
+    .ws-card-arrow {{
+        font-size: 18px; color: #2d6a4f; text-align: right; margin-top: 12px;
+    }}
+</style>
+
+<div class="ws-home">
+    <div class="ws-header">
+        <div class="ws-title"><span>&gt;_</span> workspace</div>
+    </div>
+    <div class="ws-grid">
+        {cards_html}
+    </div>
+</div>
+""")

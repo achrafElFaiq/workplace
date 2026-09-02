@@ -23,16 +23,20 @@ EXTRACTION_PROMPT = """Tu es un parser d'offres d'emploi. Extrais les informatio
   "sector": "Secteur d'activité ou null",
   "company_size": "Taille ou CA si mentionné, sinon null",
   "contact": "Nom du recruteur si mentionné, sinon null",
-  "seniority": "junior | confirmé | senior | lead"
+  "seniority": "junior | confirmé | senior | lead",
+  "keywords": ["mot-clé 1", "mot-clé 2", "..."]
 }
 
 Règles :
 - Si une info n'est pas dans le texte, mets null (ou liste vide pour les arrays)
-- missions, stack, requirements, process sont des arrays de strings
+- missions, stack, requirements, process, keywords sont des arrays de strings
 - process : uniquement si l'offre decrit explicitement les etapes de son
   propre processus de recrutement (ex: "1. Appel telephonique 2. Test
   technique 3. Entretien final") — dans l'ordre indique. Liste vide si non
   mentionne, n'invente rien.
+- keywords : les mots-clés techniques et métier pertinents pour cette offre
+  (technologies, outils, méthodologies, compétences clés, certifications).
+  Ce sont les termes qu'un ATS ou recruteur chercherait dans un CV. Max 15.
 - Sois factuel, n'invente rien
 """
 

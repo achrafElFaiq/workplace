@@ -636,10 +636,12 @@ let S = {
 };
 
 // ─── Persistence ───────────────────────────────────────────────────────────────
-function load() {
-    try { const r = localStorage.getItem('tasks-v3'); if (r) S.projects = JSON.parse(r).projects || []; } catch {}
+async function load() {
+    try { const r = await fetch('api/data'); const d = await r.json(); S.projects = d.projects || []; } catch {}
 }
-function save() { localStorage.setItem('tasks-v3', JSON.stringify({ projects: S.projects })); }
+function save() {
+    fetch('api/data', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ projects: S.projects }) }).catch(()=>{});
+}
 
 // ─── Utils ─────────────────────────────────────────────────────────────────────
 const uid     = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
@@ -1082,9 +1084,10 @@ function bind() {
 }
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
-load();
-if (!S.selectedId) { const first = S.projects.find(p=>!p.archived); if (first) S.selectedId = first.id; }
-render();
+load().then(() => {
+    if (!S.selectedId) { const first = S.projects.find(p=>!p.archived); if (first) S.selectedId = first.id; }
+    render();
+});
 </script>
 </body>
 </html>

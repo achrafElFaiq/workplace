@@ -1,0 +1,8 @@
+name: Calendar
+slug: calendar
+description: Events, reminders, deadlines
+icon: "[>]"
+type: streamlit
+entry: app.py
+volumes:
+  - data:/app/data

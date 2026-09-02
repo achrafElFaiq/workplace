@@ -14,10 +14,10 @@ def add_application(data: dict) -> int:
         """
         INSERT INTO applications
             (company, position, location, contract_type, salary,
-             missions, stack, requirements, process, sector, company_size,
+             missions, stack, requirements, process, keywords, sector, company_size,
              contact, seniority, url, raw_text, source,
              applied_via_email, status, notes, applied_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             data["company"],
@@ -29,6 +29,7 @@ def add_application(data: dict) -> int:
             json.dumps(data.get("stack", []), ensure_ascii=False),
             json.dumps(data.get("requirements", []), ensure_ascii=False),
             json.dumps(data.get("process", []), ensure_ascii=False),
+            json.dumps(data.get("keywords", []), ensure_ascii=False),
             data.get("sector"),
             data.get("company_size"),
             data.get("contact"),
@@ -61,8 +62,8 @@ def get_application(app_id: int) -> dict | None:
     if not row:
         return None
     app = dict(row)
-    for field in ("missions", "stack", "requirements", "process"):
-        if app[field]:
+    for field in ("missions", "stack", "requirements", "process", "keywords"):
+        if app.get(field):
             app[field] = json.loads(app[field])
     return app
 
@@ -96,8 +97,8 @@ def list_applications(
     results = []
     for row in rows:
         app = dict(row)
-        for field in ("missions", "stack", "requirements", "process"):
-            if app[field]:
+        for field in ("missions", "stack", "requirements", "process", "keywords"):
+            if app.get(field):
                 app[field] = json.loads(app[field])
         results.append(app)
     return results
@@ -411,8 +412,45 @@ def update_application(app_id: int, data: dict):
     conn.close()
 
 
+# ── Documents ──
+
+def add_document(app_id: int, filename: str, filepath: str, doc_type: str = None) -> int:
+    conn = get_connection()
+    cursor = conn.execute(
+        "INSERT INTO documents (application_id, filename, filepath, doc_type) VALUES (?, ?, ?, ?)",
+        (app_id, filename, filepath, doc_type),
+    )
+    conn.commit()
+    doc_id = cursor.lastrowid
+    conn.close()
+    return doc_id
+
+
+def list_documents(app_id: int) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM documents WHERE application_id = ? ORDER BY uploaded_at DESC",
+        (app_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_document(doc_id: int) -> str | None:
+    conn = get_connection()
+    row = conn.execute("SELECT filepath FROM documents WHERE id = ?", (doc_id,)).fetchone()
+    if row:
+        conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+        conn.commit()
+        conn.close()
+        return row["filepath"]
+    conn.close()
+    return None
+
+
 def delete_application(app_id: int):
     conn = get_connection()
+    conn.execute("DELETE FROM documents WHERE application_id = ?", (app_id,))
     conn.execute("DELETE FROM emails WHERE application_id = ?", (app_id,))
     conn.execute("DELETE FROM status_history WHERE application_id = ?", (app_id,))
     conn.execute("DELETE FROM applications WHERE id = ?", (app_id,))

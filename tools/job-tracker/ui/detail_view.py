@@ -1,5 +1,7 @@
+import os
 import streamlit as st
-from db.queries import get_emails_for_application
+from db.queries import get_emails_for_application, list_documents, add_document, delete_document
+from config import DOCUMENTS_DIR
 from ui.components import STATUS_COLORS
 
 
@@ -45,6 +47,22 @@ def render_application_summary(app: dict):
         <div class="jt-card">
             <div class="jt-card-title">&gt; Process de recrutement</div>
             <ol class="jt-list">{process_list}</ol>
+        </div>
+        """
+
+    keywords_items = app.get("keywords") or []
+    keywords_block = ""
+    if keywords_items:
+        kw_tags = "".join(
+            f'<span style="display:inline-block; font-size:11px; padding:3px 10px; '
+            f'border:1px solid #2d6a4f; border-radius:3px; color:#2d6a4f; '
+            f'background:#e8f5ec; margin:3px;">{kw}</span>'
+            for kw in keywords_items
+        )
+        keywords_block = f"""
+        <div class="jt-card">
+            <div class="jt-card-title">&gt; Mots-cles</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">{kw_tags}</div>
         </div>
         """
 
@@ -104,6 +122,7 @@ def render_application_summary(app: dict):
         {missions_block}
         {req_block}
         {process_block}
+        {keywords_block}
         {emails_block}
     </div>
     """
@@ -158,3 +177,40 @@ def render_application_summary(app: dict):
                     key=f"dl_lm_{app['id']}",
                     use_container_width=True,
                 )
+
+    # Documents
+    docs = list_documents(app["id"])
+    with st.expander(f"Documents ({len(docs)})", expanded=False):
+        if docs:
+            for doc in docs:
+                dc1, dc2 = st.columns([6, 1])
+                dc1.caption(f"[{doc['doc_type'] or 'file'}] {doc['filename']}")
+                if os.path.isfile(doc["filepath"]):
+                    with open(doc["filepath"], "rb") as f:
+                        dc1.download_button(
+                            "[dl]", data=f.read(), file_name=doc["filename"],
+                            key=f"dl_doc_{doc['id']}",
+                        )
+                if dc2.button("[x]", key=f"rm_doc_{doc['id']}"):
+                    filepath = delete_document(doc["id"])
+                    if filepath and os.path.isfile(filepath):
+                        os.remove(filepath)
+                    st.rerun()
+        else:
+            st.caption("Aucun document.")
+
+        new_docs = st.file_uploader(
+            "Ajouter des documents", accept_multiple_files=True,
+            key=f"upload_docs_{app['id']}",
+        )
+        if new_docs and st.button("[save] Enregistrer documents", key=f"save_docs_{app['id']}"):
+            doc_dir = os.path.join(DOCUMENTS_DIR, str(app["id"]))
+            os.makedirs(doc_dir, exist_ok=True)
+            for uf in new_docs:
+                filepath = os.path.join(doc_dir, uf.name)
+                with open(filepath, "wb") as f:
+                    f.write(uf.getbuffer())
+                ext = os.path.splitext(uf.name)[1].lower()
+                doc_type = {".pdf": "pdf", ".docx": "docx", ".doc": "doc", ".txt": "text"}.get(ext, "other")
+                add_document(app["id"], uf.name, filepath, doc_type)
+            st.rerun()

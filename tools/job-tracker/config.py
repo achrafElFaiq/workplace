@@ -28,6 +28,7 @@ CV_RULES_PATH = os.path.join(_TOOL_DIR, "data", "guide", "cv_change_rules.md")
 COVER_LETTER_TEMPLATE_PATH = os.path.join(_TOOL_DIR, "data", "cover_letter_template.tex")
 COVER_LETTER_GUIDE_PATH = os.path.join(_TOOL_DIR, "data", "guide", "redaction_lettre_rules.md")
 GENERATED_DIR = os.path.join(_TOOL_DIR, "data", "generated")
+DOCUMENTS_DIR = os.path.join(_TOOL_DIR, "data", "documents")
 
 # Gmail IMAP — config.yaml first, .env fallback
 GMAIL_ACCOUNTS = []

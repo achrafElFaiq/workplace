@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS applications (
     stack TEXT,           -- JSON array
     requirements TEXT,    -- JSON array
     process TEXT,         -- JSON array, etapes du processus de recrutement
+    keywords TEXT,        -- JSON array, mots-clés pertinents pour l'offre
     sector TEXT,
     company_size TEXT,
     contact TEXT,
@@ -46,6 +47,16 @@ CREATE TABLE IF NOT EXISTS status_history (
     new_status TEXT NOT NULL,
     trigger TEXT DEFAULT 'manual',
     changed_at DATETIME DEFAULT (datetime('now')),
+    FOREIGN KEY (application_id) REFERENCES applications(id)
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_id INTEGER NOT NULL,
+    filename TEXT NOT NULL,
+    filepath TEXT NOT NULL,
+    doc_type TEXT,
+    uploaded_at DATETIME DEFAULT (datetime('now')),
     FOREIGN KEY (application_id) REFERENCES applications(id)
 );
 

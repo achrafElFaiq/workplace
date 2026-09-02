@@ -1,0 +1,8 @@
+name: To Do List
+slug: todolist
+description: Task management
+icon: "[>]"
+type: flask
+entry: app.py
+volumes:
+  - data:/app/data

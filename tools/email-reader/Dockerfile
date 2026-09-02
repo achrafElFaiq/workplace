@@ -8,5 +8,5 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
-EXPOSE 8503
-CMD ["uv", "run", "streamlit", "run", "app.py", "--server.port=8503", "--server.headless=true", "--server.address=0.0.0.0"]
+EXPOSE 8501
+CMD ["uv", "run", "streamlit", "run", "app.py", "--server.port=8501", "--server.headless=true", "--server.address=0.0.0.0", "--server.baseUrlPath=/tools/email-reader"]

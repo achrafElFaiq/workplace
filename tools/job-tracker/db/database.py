@@ -16,6 +16,8 @@ def _migrate(conn):
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(applications)")}
     if "process" not in columns:
         conn.execute("ALTER TABLE applications ADD COLUMN process TEXT")
+    if "keywords" not in columns:
+        conn.execute("ALTER TABLE applications ADD COLUMN keywords TEXT")
 
     contact_columns = {row["name"] for row in conn.execute("PRAGMA table_info(contacts)")}
     if "phone" not in contact_columns:
