@@ -16,6 +16,7 @@
             --text: #1a1a1a;
             --text-muted: #888888;
             --border: #d4d4c8;
+            --border-light: #eeeeee;
             --r: 6px;
         }
 
@@ -26,11 +27,14 @@
             background: var(--bg);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
+            overflow: hidden;
         }
 
         /* ── Home ──────────────────────────── */
         .home {
             padding: 32px 24px;
+            height: 100vh;
+            overflow-y: auto;
         }
 
         .title {
@@ -61,11 +65,26 @@
             transition: border-color 0.15s;
         }
         .card:hover { border-color: var(--primary); }
+        .card { position: relative; }
 
-        .card-add {
-            border-style: dashed;
-            cursor: default;
+        .card-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s;
         }
+        .card:hover .card-close { opacity: 1; }
+        .card-close:hover { color: #c0392b; }
 
         .card-name {
             font-size: 15px;
@@ -87,6 +106,28 @@
             text-align: right;
             margin-top: 12px;
         }
+
+        /* ── Browse marketplace button ─────── */
+        .btn-add {
+            position: fixed;
+            top: 40px;
+            right: 24px;
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: 1px dashed var(--border);
+            border-radius: var(--r);
+            background: var(--bg);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .btn-add:hover { border-color: var(--primary); }
 
         /* ── Frame (tool view) ─────────────── */
         .frame { display: none; }
@@ -150,6 +191,167 @@
             background: var(--bg);
         }
 
+        /* ── Marketplace expand ─────────────── */
+        .market-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        .market-overlay.active { pointer-events: auto; }
+
+        .market-panel {
+            position: fixed;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            z-index: 10001;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.15, 1);
+            display: none;
+        }
+        .market-panel.visible { display: block; }
+        .market-panel.expanded { border-radius: 0; border: none; }
+
+        .market-content {
+            opacity: 0;
+            padding: 28px;
+            height: 100%;
+            overflow: hidden;
+            transition: opacity 0.2s ease 0.25s;
+        }
+        .market-panel.expanded .market-content { opacity: 1; overflow-y: auto; }
+
+        .market-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+        .market-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .market-close {
+            padding: 4px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .market-close:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* ── Marketplace grid ──────────────── */
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .market-card {
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 20px;
+            background: var(--bg);
+        }
+
+        .market-card-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .market-card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .market-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-install, .btn-uninstall {
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid var(--primary);
+        }
+
+        .btn-install {
+            background: var(--primary);
+            color: var(--bg);
+        }
+        .btn-install:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+        .btn-uninstall {
+            background: transparent;
+            color: var(--primary);
+        }
+        .btn-uninstall:hover { background: var(--bg-secondary); }
+
+        .btn-install:disabled, .btn-uninstall:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .market-card-status {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .market-empty {
+            text-align: center;
+            padding: 80px 24px;
+        }
+        .market-empty .ic {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+        .market-empty .h {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--bg);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        .spinner-dark {
+            border-color: var(--primary);
+            border-top-color: transparent;
+        }
+
         /* ── Scrollbar ─────────────────────── */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -163,6 +365,8 @@
     <div class="grid" id="grid"></div>
 </div>
 
+<button class="btn-add" id="card-add">[+] browse marketplace</button>
+
 <div id="frame" class="frame">
     <div class="bar-top">
         <button class="bar-back" id="back">[&lt;] workspace</button>
@@ -171,6 +375,18 @@
     </div>
     <iframe id="tool-iframe" class="tool-iframe"></iframe>
     <div class="bar-bottom"></div>
+</div>
+
+<div class="market-overlay" id="market-overlay">
+    <div class="market-panel" id="market-panel">
+        <div class="market-content">
+            <div class="market-header">
+                <div class="market-title">> marketplace_</div>
+                <button class="market-close" id="market-close">[x] close</button>
+            </div>
+            <div id="market-body"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -188,26 +404,30 @@ function renderGrid() {
     const grid = document.getElementById('grid');
     let html = '';
     for (const t of tools) {
+        const closeBtn = `<button class="card-close" data-uninstall="${t.slug}">[x]</button>`;
         html += `
         <div class="card" data-slug="${t.slug}">
+            ${closeBtn}
             <div class="card-name">[&gt;] ${t.slug}</div>
             <div class="card-desc">${t.description}</div>
             <div class="card-arrow">&rarr;</div>
         </div>`;
     }
-    html += `
-    <div class="card card-add">
-        <div class="card-name" style="color:var(--primary);">[+] add app</div>
-        <div class="card-desc">Add your custom tools</div>
-        <div class="card-arrow">&rarr;</div>
-    </div>`;
     grid.innerHTML = html;
 
     grid.querySelectorAll('.card[data-slug]').forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.card-close')) return;
             const slug = card.dataset.slug;
             history.pushState({tool: slug}, '', '?tool=' + slug);
             route();
+        });
+    });
+
+    grid.querySelectorAll('.card-close[data-uninstall]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            uninstallFromHome(btn.dataset.uninstall);
         });
     });
 }
@@ -227,6 +447,7 @@ function openTool(slug) {
     if (!tool) return;
     document.getElementById('home').classList.add('hidden');
     document.getElementById('frame').classList.add('active');
+    document.getElementById('card-add').style.display = 'none';
     document.getElementById('tool-name').textContent = tool.name;
     const iframe = document.getElementById('tool-iframe');
     if (iframe.src !== tool.url) {
@@ -237,6 +458,7 @@ function openTool(slug) {
 function closeTool() {
     document.getElementById('home').classList.remove('hidden');
     document.getElementById('frame').classList.remove('active');
+    document.getElementById('card-add').style.display = '';
     document.getElementById('tool-iframe').src = '';
     document.getElementById('tool-name').textContent = '';
 }
@@ -244,6 +466,208 @@ function closeTool() {
 document.getElementById('back').addEventListener('click', () => {
     history.pushState({}, '', '?');
     route();
+});
+
+// ── Marketplace ─────────────────────────────────────
+
+async function loadMarketplace() {
+    const body = document.getElementById('market-body');
+    body.innerHTML = '<div class="market-empty"><div class="ic">[..]</div><div class="h">loading...</div></div>';
+
+    try {
+        const r = await fetch('api/marketplace');
+        const items = await r.json();
+
+        if (items.length === 0) {
+            body.innerHTML = '<div class="market-empty"><div class="ic">[ok]</div><div class="h">all tools installed</div></div>';
+            return;
+        }
+
+        let html = '<div class="market-grid">';
+        for (const item of items) {
+            html += `
+            <div class="market-card" id="mc-${item.slug}">
+                <div class="market-card-name">${item.name}</div>
+                <div class="market-card-desc">${item.description}</div>
+                <div class="market-card-actions">
+                    ${item.installed
+                        ? `<button class="btn-uninstall" onclick="uninstallTool('${item.slug}')">[x] uninstall</button>`
+                        : `<button class="btn-install" onclick="installTool('${item.slug}')">[+] install</button>`
+                    }
+                </div>
+                <div class="market-card-status" id="ms-${item.slug}">
+                    ${item.installed ? '[ok] running' : ''}
+                </div>
+            </div>`;
+        }
+        html += '</div>';
+        body.innerHTML = html;
+    } catch {
+        body.innerHTML = '<div class="market-empty"><div class="ic">[!]</div><div class="h">failed to load</div></div>';
+    }
+}
+
+function waitForTool(slug, maxAttempts) {
+    let attempts = 0;
+    return new Promise((resolve, reject) => {
+        const check = () => {
+            attempts++;
+            fetch('/tools/' + slug + '/', { method: 'HEAD' })
+                .then(r => { if (r.ok) resolve(); else throw 0; })
+                .catch(() => {
+                    if (attempts >= maxAttempts) reject();
+                    else setTimeout(check, 1500);
+                });
+        };
+        check();
+    });
+}
+
+async function installTool(slug) {
+    const card = document.getElementById('mc-' + slug);
+    const actions = card.querySelector('.market-card-actions');
+    const status = document.getElementById('ms-' + slug);
+
+    actions.innerHTML = '<button class="btn-install" disabled><span class="spinner"></span>installing...</button>';
+    status.textContent = '[..] building image...';
+
+    try {
+        const r = await fetch('api/install/' + slug, { method: 'POST' });
+        const data = await r.json();
+
+        if (!r.ok) {
+            status.textContent = '[!] ' + (data.error || 'failed');
+            actions.innerHTML = '<button class="btn-install" onclick="installTool(\'' + slug + '\')">[+] retry</button>';
+            return;
+        }
+
+        status.textContent = '[..] waiting for container...';
+
+        try {
+            await waitForTool(slug, 20);
+        } catch {
+            status.textContent = '[!] container not responding';
+            actions.innerHTML = '<button class="btn-install" onclick="installTool(\'' + slug + '\')">[+] retry</button>';
+            return;
+        }
+
+        status.textContent = '[ok] ready';
+        actions.innerHTML = '<button class="btn-uninstall" onclick="uninstallTool(\'' + slug + '\')">[x] uninstall</button>';
+
+        const toolsR = await fetch('api/tools');
+        tools = await toolsR.json();
+        renderGrid();
+
+        closeMarket();
+    } catch {
+        status.textContent = '[!] network error';
+        actions.innerHTML = '<button class="btn-install" onclick="installTool(\'' + slug + '\')">[+] retry</button>';
+    }
+}
+
+async function uninstallTool(slug) {
+    const card = document.getElementById('mc-' + slug);
+    const actions = card.querySelector('.market-card-actions');
+    const status = document.getElementById('ms-' + slug);
+
+    actions.innerHTML = '<button class="btn-uninstall" disabled><span class="spinner spinner-dark"></span>stopping...</button>';
+    status.textContent = '[..] stopping container...';
+
+    try {
+        const r = await fetch('api/uninstall/' + slug, { method: 'POST' });
+        const data = await r.json();
+
+        if (r.ok) {
+            status.textContent = '';
+            actions.innerHTML = '<button class="btn-install" onclick="installTool(\'' + slug + '\')">[+] install</button>';
+
+            const toolsR = await fetch('api/tools');
+            tools = await toolsR.json();
+            renderGrid();
+        } else {
+            status.textContent = '[!] ' + (data.error || 'failed');
+            actions.innerHTML = '<button class="btn-uninstall" onclick="uninstallTool(\'' + slug + '\')">[x] retry</button>';
+        }
+    } catch {
+        status.textContent = '[!] network error';
+        actions.innerHTML = '<button class="btn-uninstall" onclick="uninstallTool(\'' + slug + '\')">[x] retry</button>';
+    }
+}
+
+async function uninstallFromHome(slug) {
+    const card = document.querySelector(`.card[data-slug="${slug}"]`);
+    if (!card) return;
+    card.style.opacity = '0.5';
+    card.style.pointerEvents = 'none';
+
+    try {
+        const r = await fetch('api/uninstall/' + slug, { method: 'POST' });
+        if (r.ok) {
+            const toolsR = await fetch('api/tools');
+            tools = await toolsR.json();
+            renderGrid();
+        } else {
+            card.style.opacity = '';
+            card.style.pointerEvents = '';
+        }
+    } catch {
+        card.style.opacity = '';
+        card.style.pointerEvents = '';
+    }
+}
+
+// ── Marketplace expand animation ──────────────────
+
+function openMarket() {
+    const card = document.getElementById('card-add');
+    const rect = card.getBoundingClientRect();
+    const panel = document.getElementById('market-panel');
+    const overlay = document.getElementById('market-overlay');
+
+    panel.classList.remove('expanded');
+    panel.style.top = rect.top + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.style.width = rect.width + 'px';
+    panel.style.height = rect.height + 'px';
+
+    panel.classList.add('visible');
+    overlay.classList.add('active');
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            panel.style.top = '0';
+            panel.style.left = '0';
+            panel.style.width = '100vw';
+            panel.style.height = '100vh';
+            panel.classList.add('expanded');
+        });
+    });
+
+    loadMarketplace();
+}
+
+function closeMarket() {
+    const card = document.getElementById('card-add');
+    const rect = card.getBoundingClientRect();
+    const panel = document.getElementById('market-panel');
+    const overlay = document.getElementById('market-overlay');
+
+    panel.classList.remove('expanded');
+    panel.style.top = rect.top + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.style.width = rect.width + 'px';
+    panel.style.height = rect.height + 'px';
+
+    setTimeout(() => {
+        overlay.classList.remove('active');
+        panel.classList.remove('visible');
+    }, 400);
+}
+
+document.getElementById('card-add').addEventListener('click', openMarket);
+document.getElementById('market-close').addEventListener('click', closeMarket);
+document.getElementById('market-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeMarket();
 });
 
 init();

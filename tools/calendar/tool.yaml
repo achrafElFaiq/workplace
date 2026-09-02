@@ -4,5 +4,6 @@ description: Events, reminders, deadlines
 icon: "[>]"
 type: streamlit
 entry: app.py
+default: true
 volumes:
   - data:/app/data

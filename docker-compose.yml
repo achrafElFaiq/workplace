@@ -9,15 +9,16 @@ services:
     - portal
     - calendar
     - email-reader
-    - job-tracker
-    - mock-tool
     - todolist
   portal:
     build: .
     environment:
     - WORKSPACE_DOCKER=1
+    - DOCKER_NETWORK=workspace_default
+    - COMPOSE_PROJECT=workspace
     volumes:
     - ./tools:/app/tools:ro
+    - /var/run/docker.sock:/var/run/docker.sock
   calendar:
     build: ./tools/calendar
     volumes:
@@ -32,10 +33,14 @@ services:
     volumes:
     - ./tools/job-tracker/config.yaml:/app/config.yaml
     - ./tools/job-tracker/data:/app/data
+    profiles:
+    - marketplace
   mock-tool:
     build: ./tools/mock-tool
     volumes:
     - ./tools/mock-tool/data:/app/data
+    profiles:
+    - marketplace
   todolist:
     build: ./tools/todolist
     volumes:

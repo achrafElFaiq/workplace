@@ -4,5 +4,6 @@ description: Task management
 icon: "[>]"
 type: flask
 entry: app.py
+default: true
 volumes:
   - data:/app/data

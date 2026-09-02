@@ -4,6 +4,7 @@ description: Smart inbox
 icon: "[>]"
 type: streamlit
 entry: app.py
+default: true
 volumes:
   - config.yaml:/app/config.yaml
   - data:/app/data

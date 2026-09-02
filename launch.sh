@@ -21,40 +21,26 @@ sleep 2
 
 echo "  [..] Discovering tools..."
 
-# Read tool ports from config.yaml (local dev mode)
-get_port() {
-    local slug="$1"
-    local tool_dir="$2"
-    python3 -c "
-import yaml, re, sys
-def slugify(n): return re.sub(r'[^a-z0-9]+', '-', n.lower()).strip('-')
-try:
-    cfg = yaml.safe_load(open('$WORKSPACE_DIR/config.yaml'))
-    for t in cfg.get('tools', []):
-        s = slugify(t['name'])
-        path_dir = t.get('path','').rstrip('/').split('/')[-1]
-        if s == '$slug' or path_dir == '$tool_dir':
-            url = t['url']
-            port = url.split(':')[-1].split('/')[0]
-            print(port)
-            sys.exit(0)
-except: pass
-print('')
-" 2>/dev/null
+# Simple YAML field reader (no python dependency)
+yaml_get() {
+    grep "^${2}:" "$1" 2>/dev/null | sed "s/^${2}: *//" | tr -d '"' | tr -d "'"
 }
 
 PORT=8501
 for manifest in "$TOOLS_DIR"/*/tool.yaml; do
     [ -f "$manifest" ] || continue
     tool_dir=$(basename "$(dirname "$manifest")")
-    slug=$(python3 -c "import yaml; print(yaml.safe_load(open('$manifest')).get('slug',''))" 2>/dev/null)
-    tool_type=$(python3 -c "import yaml; print(yaml.safe_load(open('$manifest')).get('type','streamlit'))" 2>/dev/null)
-    tool_name=$(python3 -c "import yaml; print(yaml.safe_load(open('$manifest')).get('name','$slug'))" 2>/dev/null)
+    slug=$(yaml_get "$manifest" "slug")
+    tool_type=$(yaml_get "$manifest" "type")
+    tool_name=$(yaml_get "$manifest" "name")
 
     [ -z "$slug" ] && continue
+    [ -z "$tool_type" ] && tool_type="streamlit"
+    [ -z "$tool_name" ] && tool_name="$slug"
 
-    # Get port from config.yaml, or assign next available
-    cfg_port=$(get_port "$slug" "$tool_dir")
+    # Get port from config.yaml by matching the tool directory name
+    cfg_port=$(grep -A4 "path:.*/${tool_dir}$" "$WORKSPACE_DIR/config.yaml" 2>/dev/null \
+        | grep "port:" | head -1 | sed 's/.*port: *//')
     if [ -n "$cfg_port" ]; then
         tool_port=$cfg_port
     else
