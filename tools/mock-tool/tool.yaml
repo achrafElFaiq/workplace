@@ -1,0 +1,8 @@
+name: Mock Tool
+slug: mock-tool
+description: Test tool for plugin system validation
+icon: "[?]"
+type: flask
+entry: app.py
+volumes:
+  - data:/app/data

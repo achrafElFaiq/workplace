@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>workspace</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #fafaf5;
+            --bg-secondary: #f0f0e8;
+            --primary: #2d6a4f;
+            --primary-hover: #1b4332;
+            --text: #1a1a1a;
+            --text-muted: #888888;
+            --border: #d4d4c8;
+            --r: 6px;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Home ──────────────────────────── */
+        .home {
+            padding: 32px 24px;
+        }
+
+        .title {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 56px;
+        }
+        .title span { color: var(--primary); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 20px;
+            min-height: 120px;
+            background: var(--bg);
+            text-decoration: none;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .card:hover { border-color: var(--primary); }
+
+        .card-add {
+            border-style: dashed;
+            cursor: default;
+        }
+
+        .card-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .card-arrow {
+            font-size: 18px;
+            color: var(--primary);
+            text-align: right;
+            margin-top: 12px;
+        }
+
+        /* ── Frame (tool view) ─────────────── */
+        .frame { display: none; }
+        .frame.active { display: block; }
+        .home.hidden { display: none; }
+
+        .bar-top {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            z-index: 9999;
+        }
+
+        .bar-back {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .bar-back:hover { color: var(--primary-hover); }
+
+        .bar-name {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .bar-spacer {
+            font-size: 12px;
+            font-weight: 700;
+            visibility: hidden;
+        }
+
+        .bar-bottom {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 25px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            z-index: 9999;
+        }
+
+        .tool-iframe {
+            position: fixed;
+            top: 46px;
+            left: 0;
+            right: 0;
+            bottom: 25px;
+            width: 100%;
+            height: calc(100vh - 71px);
+            border: none;
+            background: var(--bg);
+        }
+
+        /* ── Scrollbar ─────────────────────── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div id="home" class="home">
+    <div class="title"><span>&gt;_</span> workspace</div>
+    <div class="grid" id="grid"></div>
+</div>
+
+<div id="frame" class="frame">
+    <div class="bar-top">
+        <button class="bar-back" id="back">[&lt;] workspace</button>
+        <span class="bar-name" id="tool-name"></span>
+        <span class="bar-spacer">[&lt;] workspace</span>
+    </div>
+    <iframe id="tool-iframe" class="tool-iframe"></iframe>
+    <div class="bar-bottom"></div>
+</div>
+
+<script>
+let tools = [];
+
+async function init() {
+    const r = await fetch('api/tools');
+    tools = await r.json();
+    renderGrid();
+    route();
+    window.addEventListener('popstate', route);
+}
+
+function renderGrid() {
+    const grid = document.getElementById('grid');
+    let html = '';
+    for (const t of tools) {
+        html += `
+        <div class="card" data-slug="${t.slug}">
+            <div class="card-name">[&gt;] ${t.slug}</div>
+            <div class="card-desc">${t.description}</div>
+            <div class="card-arrow">&rarr;</div>
+        </div>`;
+    }
+    html += `
+    <div class="card card-add">
+        <div class="card-name" style="color:var(--primary);">[+] add app</div>
+        <div class="card-desc">Add your custom tools</div>
+        <div class="card-arrow">&rarr;</div>
+    </div>`;
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.card[data-slug]').forEach(card => {
+        card.addEventListener('click', () => {
+            const slug = card.dataset.slug;
+            history.pushState({tool: slug}, '', '?tool=' + slug);
+            route();
+        });
+    });
+}
+
+function route() {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('tool');
+    if (slug) {
+        openTool(slug);
+    } else {
+        closeTool();
+    }
+}
+
+function openTool(slug) {
+    const tool = tools.find(t => t.slug === slug);
+    if (!tool) return;
+    document.getElementById('home').classList.add('hidden');
+    document.getElementById('frame').classList.add('active');
+    document.getElementById('tool-name').textContent = tool.name;
+    const iframe = document.getElementById('tool-iframe');
+    if (iframe.src !== tool.url) {
+        iframe.src = tool.url;
+    }
+}
+
+function closeTool() {
+    document.getElementById('home').classList.remove('hidden');
+    document.getElementById('frame').classList.remove('active');
+    document.getElementById('tool-iframe').src = '';
+    document.getElementById('tool-name').textContent = '';
+}
+
+document.getElementById('back').addEventListener('click', () => {
+    history.pushState({}, '', '?');
+    route();
+});
+
+init();
+</script>
+</body>
+</html>

@@ -6,8 +6,8 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN uv sync --no-dev
 
-COPY portal.py index.html ./
+COPY . .
 
 ENV PORT=8501
 EXPOSE 8501
-CMD ["uv", "run", "python", "portal.py"]
+CMD ["uv", "run", "python", "app.py"]

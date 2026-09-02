@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mock tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #fafaf5;
+            --bg-secondary: #f0f0e8;
+            --primary: #2d6a4f;
+            --text: #1a1a1a;
+            --text-muted: #888888;
+            --border: #d4d4c8;
+        }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .container { padding: 28px; }
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            background: var(--bg);
+            margin-bottom: 16px;
+        }
+        .card-title {
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .row {
+            display: flex;
+            padding: 7px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .row:last-child { border-bottom: none; }
+        .label { color: var(--text-muted); min-width: 110px; }
+        .status { margin-top: 16px; padding: 9px 15px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+        .status span { color: var(--primary); font-weight: 700; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="title">> mock_tool</div>
+    <div class="sub">plugin system test — if you see this, auto-discovery works</div>
+
+    <div class="card">
+        <div class="card-title">> checklist</div>
+        <div class="row"><span class="label">[ok] served</span><span>Flask on port 8501</span></div>
+        <div class="row"><span class="label">[ok] routed</span><span>nginx /tools/mock-tool/</span></div>
+        <div class="row"><span class="label">[ok] discovered</span><span>tool.yaml parsed by portal</span></div>
+        <div class="row"><span class="label">[ok] styled</span><span>terminal light v2</span></div>
+    </div>
+
+    <div class="status" id="status">[..] pinging api...</div>
+</div>
+<script>
+fetch('api/ping')
+    .then(r => r.json())
+    .then(d => {
+        document.getElementById('status').innerHTML =
+            '[ok] api response: <span>' + JSON.stringify(d) + '</span>';
+    })
+    .catch(() => {
+        document.getElementById('status').innerHTML = '[x] api unreachable';
+    });
+</script>
+</body>
+</html>

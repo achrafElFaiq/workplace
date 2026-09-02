@@ -2,42 +2,41 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "8080:80"
+    - 8080:80
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - portal
-      - job-tracker
-      - todolist
-      - email-reader
-      - calendar
-
+    - portal
+    - calendar
+    - email-reader
+    - job-tracker
+    - mock-tool
+    - todolist
   portal:
     build: .
     environment:
-      - WORKSPACE_DOCKER=1
+    - WORKSPACE_DOCKER=1
     volumes:
-      - ./config.yaml:/app/config.yaml
-      - ./tools:/app/tools:ro
-
-  job-tracker:
-    build: ./tools/job-tracker
-    volumes:
-      - ./tools/job-tracker/config.yaml:/app/config.yaml
-      - ./tools/job-tracker/data:/app/data
-
-  todolist:
-    build: ./tools/todolist
-    volumes:
-      - ./tools/todolist/data:/app/data
-
-  email-reader:
-    build: ./tools/email-reader
-    volumes:
-      - ./tools/email-reader/config.yaml:/app/config.yaml
-      - ./tools/email-reader/data:/app/data
-
+    - ./tools:/app/tools:ro
   calendar:
     build: ./tools/calendar
     volumes:
-      - ./tools/calendar/data:/app/data
+    - ./tools/calendar/data:/app/data
+  email-reader:
+    build: ./tools/email-reader
+    volumes:
+    - ./tools/email-reader/config.yaml:/app/config.yaml
+    - ./tools/email-reader/data:/app/data
+  job-tracker:
+    build: ./tools/job-tracker
+    volumes:
+    - ./tools/job-tracker/config.yaml:/app/config.yaml
+    - ./tools/job-tracker/data:/app/data
+  mock-tool:
+    build: ./tools/mock-tool
+    volumes:
+    - ./tools/mock-tool/data:/app/data
+  todolist:
+    build: ./tools/todolist
+    volumes:
+    - ./tools/todolist/data:/app/data
