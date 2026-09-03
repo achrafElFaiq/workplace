@@ -1,0 +1,107 @@
+name: Notes
+slug: notes
+description: Markdown note-taking organized by project
+icon: "[n]"
+type: flask
+entry: app.py
+default: true
+volumes:
+  - data:/app/data
+
+mcp:
+  actions:
+    - name: get_projects
+      description: List all note projects
+      method: GET
+      path: /api/projects
+      read: true
+
+    - name: get_notes
+      description: List notes in a project
+      method: GET
+      path: /api/projects/{project_id}/notes
+      read: true
+      params:
+        - name: project_id
+          type: string
+          required: true
+          description: Project ID
+
+    - name: get_note
+      description: Get a single note with its full content
+      method: GET
+      path: /api/notes/{note_id}
+      read: true
+      params:
+        - name: note_id
+          type: string
+          required: true
+          description: Note ID
+
+    - name: create_project
+      description: Create a new note project
+      method: POST
+      path: /api/projects
+      read: false
+      params:
+        - name: name
+          type: string
+          required: true
+          description: Project name
+
+    - name: delete_project
+      description: Delete a project and all its notes
+      method: DELETE
+      path: /api/projects/{project_id}
+      read: false
+      params:
+        - name: project_id
+          type: string
+          required: true
+          description: Project ID to delete
+
+    - name: create_note
+      description: Create a new note in a project
+      method: POST
+      path: /api/projects/{project_id}/notes
+      read: false
+      params:
+        - name: project_id
+          type: string
+          required: true
+          description: Project ID to add the note to
+        - name: title
+          type: string
+          required: true
+          description: Note title
+        - name: content
+          type: string
+          description: Markdown content
+
+    - name: update_note
+      description: Update a note title or content
+      method: PUT
+      path: /api/notes/{note_id}
+      read: false
+      params:
+        - name: note_id
+          type: string
+          required: true
+          description: Note ID
+        - name: title
+          type: string
+          description: New title
+        - name: content
+          type: string
+          description: New markdown content
+
+    - name: delete_note
+      description: Delete a note
+      method: DELETE
+      path: /api/notes/{note_id}
+      read: false
+      params:
+        - name: note_id
+          type: string
+          required: true
+          description: Note ID to delete

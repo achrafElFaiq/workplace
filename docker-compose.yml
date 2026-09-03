@@ -10,6 +10,8 @@ services:
     - calendar
     - email-reader
     - todolist
+    - notes
+    - kanban
   portal:
     build: .
     environment:
@@ -42,12 +44,20 @@ services:
     - ./tools/job-tracker/data:/app/data
     profiles:
     - marketplace
+  notes:
+    build: ./tools/notes
+    volumes:
+    - ./tools/notes/data:/app/data
   mock-tool:
     build: ./tools/mock-tool
     volumes:
     - ./tools/mock-tool/data:/app/data
     profiles:
     - marketplace
+  kanban:
+    build: ./tools/kanban
+    volumes:
+    - ./tools/kanban/data:/app/data
   todolist:
     build: ./tools/todolist
     volumes:

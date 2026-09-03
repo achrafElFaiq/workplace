@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.7/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #fafaf5; --bg-secondary: #f0f0e8; --primary: #2d6a4f;
+    --primary-hover: #1b4332; --text: #1a1a1a; --text-muted: #888;
+    --border: #d4d4c8; --border-light: #eee; --r: 6px;
+  }
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text); background:var(--bg); height:100vh; display:flex; flex-direction:column; }
+
+  /* Layout */
+  .layout { display:flex; flex:1; overflow:hidden; }
+
+  /* Sidebar */
+  .sidebar { width:260px; border-right:1px solid var(--border); display:flex; flex-direction:column; background:var(--bg-secondary); flex-shrink:0; }
+  .sidebar-header { padding:10px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .sidebar-header .title { font-weight:700; font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .sidebar-list { flex:1; overflow-y:auto; }
+  .sidebar-item { padding:8px 12px; cursor:pointer; border-bottom:1px solid var(--border-light); font-size:12px; transition:background 0.1s; }
+  .sidebar-item:hover { background:rgba(45,106,79,0.06); }
+  .sidebar-item.active { background:var(--bg); border-left:2px solid var(--primary); }
+  .sidebar-item .item-title { font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sidebar-item .item-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .project-header { padding:8px 12px; font-weight:700; font-size:12px; color:var(--primary); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer; position:relative; }
+  .project-header:hover { background:rgba(45,106,79,0.06); }
+  .project-count { font-weight:400; color:var(--text-muted); }
+  .dots-btn { background:none; border:none; cursor:pointer; padding:2px 4px; font-size:14px; color:var(--text-muted); line-height:1; letter-spacing:1px; }
+  .dots-btn:hover { color:var(--primary); }
+  .ctx-menu { position:absolute; right:8px; top:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--r); box-shadow:0 2px 8px rgba(0,0,0,0.08); z-index:50; min-width:140px; display:none; }
+  .ctx-menu.visible { display:block; }
+  .ctx-menu-item { padding:7px 12px; font-size:11px; cursor:pointer; color:var(--text); display:block; width:100%; border:none; background:none; font-family:inherit; text-align:left; }
+  .ctx-menu-item:hover { background:var(--bg-secondary); }
+  .ctx-menu-item.danger { color:#a4343a; }
+  .ctx-menu-item.danger:hover { background:rgba(164,52,58,0.06); }
+
+  /* Buttons */
+  .btn { font-family:inherit; font-size:11px; padding:4px 10px; border-radius:4px; cursor:pointer; border:1px solid var(--primary); color:var(--primary); background:transparent; transition:all 0.15s; }
+  .btn:hover { background:var(--primary); color:var(--bg); }
+  .btn-sm { padding:2px 8px; font-size:11px; }
+  .btn-danger { border-color:#a4343a; color:#a4343a; }
+  .btn-danger:hover { background:#a4343a; color:var(--bg); }
+
+  /* Main area */
+  .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .empty-state { flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:12px; }
+
+  /* Editor */
+  .editor-header { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .editor-title { flex:1; font-family:inherit; font-size:14px; font-weight:700; border:none; background:transparent; color:var(--text); outline:none; }
+  .editor-title::placeholder { color:var(--text-muted); }
+  .editor-body { flex:1; display:flex; overflow:hidden; }
+  .editor-pane { flex:1; overflow-y:auto; }
+  .editor-textarea { width:100%; height:100%; border:none; resize:none; padding:12px 16px; font-family:inherit; font-size:13px; line-height:1.7; background:var(--bg); color:var(--text); outline:none; }
+  .editor-textarea::placeholder { color:var(--text-muted); }
+  .editor-divider { width:1px; background:var(--border); flex-shrink:0; }
+
+  /* Preview */
+  .preview { padding:12px 16px; font-size:13px; line-height:1.7; }
+  .preview h1 { font-size:18px; font-weight:700; color:var(--primary); margin:16px 0 8px; }
+  .preview h1:first-child { margin-top:0; }
+  .preview h2 { font-size:15px; font-weight:700; color:var(--primary); margin:14px 0 6px; }
+  .preview h3 { font-size:13px; font-weight:700; color:var(--primary); margin:12px 0 4px; }
+  .preview p { margin:0 0 10px; }
+  .preview ul, .preview ol { margin:4px 0 10px 18px; }
+  .preview li { margin-bottom:2px; }
+  .preview code { background:rgba(0,0,0,0.06); padding:1px 4px; border-radius:3px; font-size:12px; }
+  .preview pre { background:#1a1a1a; color:#e0e0e0; padding:10px 12px; border-radius:4px; overflow-x:auto; margin:8px 0; font-size:12px; line-height:1.5; }
+  .preview pre code { background:none; padding:0; color:inherit; font-size:inherit; }
+  .preview blockquote { border-left:2px solid var(--border); padding-left:10px; color:var(--text-muted); margin:8px 0; }
+  .preview strong { font-weight:700; }
+  .preview a { color:var(--primary); }
+  .preview table { border-collapse:collapse; margin:8px 0; width:100%; font-size:12px; }
+  .preview th, .preview td { border:1px solid var(--border); padding:4px 8px; text-align:left; }
+  .preview th { background:var(--bg-secondary); font-weight:700; }
+  .preview hr { border:none; border-top:1px solid var(--border); margin:12px 0; }
+  .preview img { max-width:100%; border-radius:4px; }
+
+  /* Tabs (edit/preview) */
+  .view-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .view-tab { padding:6px 16px; font-family:inherit; font-size:12px; cursor:pointer; border:none; background:transparent; color:var(--text-muted); border-bottom:2px solid transparent; }
+  .view-tab.active { color:var(--primary); font-weight:700; border-bottom-color:var(--primary); }
+
+  /* Modal */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); display:none; align-items:center; justify-content:center; z-index:100; }
+  .modal-overlay.visible { display:flex; }
+  .modal { background:var(--bg); border:1px solid var(--border); border-radius:var(--r); padding:20px; width:340px; }
+  .modal h3 { font-size:14px; color:var(--primary); margin-bottom:12px; }
+  .modal input { width:100%; font-family:inherit; font-size:13px; border:1px dashed #ccc; border-radius:4px; padding:6px 10px; background:var(--bg); margin-bottom:12px; outline:none; }
+  .modal input:focus { border-color:var(--primary); }
+  .modal .btn-row { display:flex; gap:8px; }
+
+  /* Toast */
+  .toast { position:fixed; bottom:16px; right:16px; background:var(--primary); color:var(--bg); padding:8px 16px; border-radius:4px; font-size:12px; z-index:200; opacity:0; transition:opacity 0.2s; pointer-events:none; }
+  .toast.visible { opacity:1; }
+
+  /* Saved indicator */
+  .save-status { font-size:11px; color:var(--text-muted); }
+  .save-status.saving { color:var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="title">Projects</span>
+      <button class="btn btn-sm" onclick="showNewProject()">[+]</button>
+    </div>
+    <div class="sidebar-list" id="sidebar"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main" id="main">
+    <div class="empty-state" id="empty-state">select or create a project to start</div>
+  </div>
+</div>
+
+<!-- New project modal -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <h3>> New project</h3>
+    <input type="text" id="new-project-name" placeholder="Project name...">
+    <div class="btn-row">
+      <button class="btn" onclick="createProject()">[ok] create</button>
+      <button class="btn" onclick="closeModal('modal-project')">cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- New note modal -->
+<div class="modal-overlay" id="modal-note">
+  <div class="modal">
+    <h3>> New note</h3>
+    <input type="text" id="new-note-title" placeholder="Note title...">
+    <div class="btn-row">
+      <button class="btn" onclick="createNote()">[ok] create</button>
+      <button class="btn" onclick="closeModal('modal-note')">cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <h3>> Confirm delete</h3>
+    <p id="delete-msg" style="font-size:12px; margin-bottom:12px; color:var(--text-muted);"></p>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="delete-confirm">[x] delete</button>
+      <button class="btn" onclick="closeModal('modal-delete')">cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+marked.setOptions({ gfm: true, breaks: true });
+
+let projects = [];
+let currentProject = null;
+let currentNote = null;
+let saveTimer = null;
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 1500);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// ── Sidebar ──
+
+async function loadSidebar() {
+  projects = await api('api/projects');
+  const sb = document.getElementById('sidebar');
+  if (!projects.length) {
+    sb.innerHTML = '<div style="padding:12px; font-size:11px; color:var(--text-muted);">no projects yet</div>';
+    return;
+  }
+
+  let html = '';
+  for (const p of projects) {
+    const isActive = currentProject && currentProject.id === p.id;
+    html += '<div class="project-header' + (isActive ? ' active' : '') + '" onclick="selectProject(\'' + p.id + '\')">' +
+      '<span>' + esc(p.name) + ' <span class="project-count">(' + p.note_count + ')</span></span>' +
+      '<button class="dots-btn" onclick="event.stopPropagation(); toggleCtxMenu(\'' + p.id + '\')">...</button>' +
+      '<div class="ctx-menu" id="ctx-' + p.id + '">' +
+        '<button class="ctx-menu-item" onclick="event.stopPropagation(); closeAllMenus(); showNewNote(\'' + p.id + '\')">[+] new note</button>' +
+        '<button class="ctx-menu-item" onclick="event.stopPropagation(); closeAllMenus(); showRenameProject(\'' + p.id + '\', \'' + esc(p.name).replace(/'/g, "\\'") + '\')">[edit] rename</button>' +
+        '<button class="ctx-menu-item danger" onclick="event.stopPropagation(); closeAllMenus(); confirmDeleteProject(\'' + p.id + '\', \'' + esc(p.name).replace(/'/g, "\\'") + '\')">[x] delete</button>' +
+      '</div>' +
+    '</div>';
+    if (isActive && currentProject._notes) {
+      html += '<div style="padding-left:4px;">';
+      for (const n of currentProject._notes) {
+        const noteActive = currentNote && currentNote.id === n.id;
+        html += '<div class="sidebar-item' + (noteActive ? ' active' : '') + '" onclick="event.stopPropagation(); selectNote(\'' + n.id + '\')">' +
+          '<div class="item-title">' + esc(n.title) + '</div>' +
+          '<div class="item-meta">' + n.updatedAt.slice(0, 10) + '</div>' +
+        '</div>';
+      }
+      if (!currentProject._notes.length) {
+        html += '<div style="padding:6px 12px; font-size:11px; color:var(--text-muted);">no notes</div>';
+      }
+      html += '</div>';
+    }
+  }
+  sb.innerHTML = html;
+}
+
+async function selectProject(pid) {
+  if (currentProject && currentProject.id === pid) {
+    currentProject = null;
+    currentNote = null;
+    document.getElementById('main').innerHTML = '<div class="empty-state">select a project</div>';
+    loadSidebar();
+    return;
+  }
+  const notes = await api('api/projects/' + pid + '/notes');
+  currentProject = projects.find(p => p.id === pid);
+  currentProject._notes = notes;
+  currentNote = null;
+  document.getElementById('main').innerHTML =
+    '<div class="empty-state">select a note or create one with [+]</div>';
+  loadSidebar();
+}
+
+async function selectNote(nid) {
+  const note = await api('api/notes/' + nid);
+  if (note.error) { toast('note not found'); return; }
+  currentNote = note;
+  renderEditor();
+  loadSidebar();
+}
+
+// ── Editor ──
+
+function renderEditor() {
+  const n = currentNote;
+  const main = document.getElementById('main');
+  main.innerHTML =
+    '<div class="editor-header">' +
+      '<input class="editor-title" id="ed-title" value="' + esc(n.title).replace(/"/g, '&quot;') + '" placeholder="title...">' +
+      '<span class="save-status" id="save-status"></span>' +
+      '<button class="btn btn-sm btn-danger" onclick="confirmDeleteNote(\'' + n.id + '\', \'' + esc(n.title) + '\')">[x]</button>' +
+    '</div>' +
+    '<div class="view-tabs">' +
+      '<button class="view-tab active" id="tab-edit" onclick="switchTab(\'edit\')">[edit]</button>' +
+      '<button class="view-tab" id="tab-preview" onclick="switchTab(\'preview\')">[preview]</button>' +
+      '<button class="view-tab" id="tab-split" onclick="switchTab(\'split\')">[split]</button>' +
+    '</div>' +
+    '<div class="editor-body" id="editor-body">' +
+      '<div class="editor-pane">' +
+        '<textarea class="editor-textarea" id="ed-content" placeholder="start writing...">' + esc(n.content) + '</textarea>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('ed-content').addEventListener('input', onContentChange);
+  document.getElementById('ed-title').addEventListener('input', onContentChange);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  const body = document.getElementById('editor-body');
+  const content = document.getElementById('ed-content')?.value || currentNote.content;
+
+  if (tab === 'edit') {
+    body.innerHTML =
+      '<div class="editor-pane">' +
+        '<textarea class="editor-textarea" id="ed-content" placeholder="start writing...">' + esc(content) + '</textarea>' +
+      '</div>';
+    document.getElementById('ed-content').addEventListener('input', onContentChange);
+  } else if (tab === 'preview') {
+    body.innerHTML =
+      '<div class="editor-pane"><div class="preview" id="ed-preview"></div></div>';
+    document.getElementById('ed-preview').innerHTML = marked.parse(content);
+  } else {
+    body.innerHTML =
+      '<div class="editor-pane">' +
+        '<textarea class="editor-textarea" id="ed-content" placeholder="start writing...">' + esc(content) + '</textarea>' +
+      '</div>' +
+      '<div class="editor-divider"></div>' +
+      '<div class="editor-pane"><div class="preview" id="ed-preview"></div></div>';
+    document.getElementById('ed-preview').innerHTML = marked.parse(content);
+    document.getElementById('ed-content').addEventListener('input', onContentChange);
+  }
+}
+
+function onContentChange() {
+  clearTimeout(saveTimer);
+  const status = document.getElementById('save-status');
+  status.textContent = 'editing...';
+  status.className = 'save-status';
+
+  const preview = document.getElementById('ed-preview');
+  if (preview) {
+    preview.innerHTML = marked.parse(document.getElementById('ed-content').value);
+  }
+
+  saveTimer = setTimeout(autoSave, 800);
+}
+
+async function autoSave() {
+  if (!currentNote) return;
+  const title = document.getElementById('ed-title').value.trim();
+  const content = document.getElementById('ed-content')?.value || '';
+  const status = document.getElementById('save-status');
+  status.textContent = 'saving...';
+  status.className = 'save-status saving';
+
+  currentNote.title = title || currentNote.title;
+  currentNote.content = content;
+
+  await api('api/notes/' + currentNote.id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: currentNote.title, content }),
+  });
+
+  status.textContent = 'saved';
+  status.className = 'save-status';
+  setTimeout(() => { if (status.textContent === 'saved') status.textContent = ''; }, 2000);
+
+  loadSidebar();
+}
+
+// ── CRUD ──
+
+function showNewProject() {
+  document.getElementById('new-project-name').value = '';
+  delete document.getElementById('modal-project').dataset.renameId;
+  document.getElementById('modal-project').classList.add('visible');
+  document.getElementById('new-project-name').focus();
+}
+
+async function createProject() {
+  const name = document.getElementById('new-project-name').value.trim();
+  if (!name) return;
+  const renameId = document.getElementById('modal-project').dataset.renameId;
+  if (renameId) {
+    await api('api/projects/' + renameId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    delete document.getElementById('modal-project').dataset.renameId;
+    closeModal('modal-project');
+    toast('project renamed');
+  } else {
+    await api('api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    closeModal('modal-project');
+    toast('project created');
+  }
+  await loadSidebar();
+}
+
+function toggleCtxMenu(pid) {
+  const menu = document.getElementById('ctx-' + pid);
+  const wasVisible = menu.classList.contains('visible');
+  closeAllMenus();
+  if (!wasVisible) menu.classList.add('visible');
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.ctx-menu.visible').forEach(m => m.classList.remove('visible'));
+}
+
+async function showNewNote(pid) {
+  if (pid && (!currentProject || currentProject.id !== pid)) {
+    await selectProject(pid);
+  }
+  if (!currentProject) return;
+  document.getElementById('new-note-title').value = '';
+  document.getElementById('modal-note').classList.add('visible');
+  document.getElementById('new-note-title').focus();
+}
+
+function showRenameProject(pid, name) {
+  document.getElementById('new-project-name').value = name;
+  document.getElementById('modal-project').classList.add('visible');
+  document.getElementById('new-project-name').focus();
+  document.getElementById('modal-project').dataset.renameId = pid;
+}
+
+async function createNote() {
+  const title = document.getElementById('new-note-title').value.trim();
+  if (!title || !currentProject) return;
+  const res = await api('api/projects/' + currentProject.id + '/notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  });
+  closeModal('modal-note');
+  toast('note created');
+  const notes = await api('api/projects/' + currentProject.id + '/notes');
+  currentProject._notes = notes;
+  await selectNote(res.id);
+}
+
+function confirmDeleteProject(pid, name) {
+  document.getElementById('delete-msg').textContent = 'delete project "' + name + '" and all its notes?';
+  document.getElementById('delete-confirm').onclick = async () => {
+    await api('api/projects/' + pid, { method: 'DELETE' });
+    closeModal('modal-delete');
+    currentProject = null;
+    currentNote = null;
+    document.getElementById('main').innerHTML = '<div class="empty-state">select or create a project</div>';
+    toast('project deleted');
+    loadSidebar();
+  };
+  document.getElementById('modal-delete').classList.add('visible');
+}
+
+function confirmDeleteNote(nid, title) {
+  document.getElementById('delete-msg').textContent = 'delete note "' + title + '"?';
+  document.getElementById('delete-confirm').onclick = async () => {
+    await api('api/notes/' + nid, { method: 'DELETE' });
+    closeModal('modal-delete');
+    currentNote = null;
+    const notes = await api('api/projects/' + currentProject.id + '/notes');
+    currentProject._notes = notes;
+    document.getElementById('main').innerHTML = '<div class="empty-state">select a note</div>';
+    toast('note deleted');
+    loadSidebar();
+  };
+  document.getElementById('modal-delete').classList.add('visible');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('visible');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('visible'); });
+});
+
+// Enter key in modals
+document.getElementById('new-project-name').addEventListener('keydown', e => { if (e.key === 'Enter') createProject(); });
+document.getElementById('new-note-title').addEventListener('keydown', e => { if (e.key === 'Enter') createNote(); });
+
+// Close context menus on click outside
+document.addEventListener('click', () => closeAllMenus());
+
+// Init
+loadSidebar();
+</script>
+</body>
+</html>

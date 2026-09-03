@@ -396,8 +396,31 @@
             flex-direction: column;
             overflow: hidden;
             box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.15, 1);
         }
         .chat-panel.visible { display: flex; }
+
+        .chat-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9997;
+            background: rgba(0,0,0,0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.15, 1);
+        }
+        .chat-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .chat-panel.expanded {
+            bottom: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+            z-index: 9998;
+        }
 
         .chat-header {
             padding: 12px 16px;
@@ -433,6 +456,19 @@
         }
         .chat-gear:hover { color: var(--primary); }
         .chat-gear.active { color: var(--primary); }
+        .chat-expand {
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: color 0.15s;
+        }
+        .chat-expand:hover { color: var(--primary); }
 
         .chat-settings {
             border-bottom: 1px solid var(--border);
@@ -711,12 +747,14 @@
     </div>
 </div>
 
+<div class="chat-overlay" id="chat-overlay"></div>
 <button class="chat-btn" id="chat-btn">&gt;_</button>
 <div class="chat-panel" id="chat-panel">
     <div class="chat-header">
         <span>> agent_</span>
         <div class="chat-header-right">
             <span class="chat-header-model" id="chat-model"></span>
+            <button class="chat-expand" id="chat-expand" onclick="toggleExpandChat()">[^]</button>
             <button class="chat-gear" id="chat-gear" onclick="toggleSettings()">[~]</button>
         </div>
     </div>
@@ -1033,10 +1071,34 @@ let chatInited = false;
 document.getElementById('chat-btn').addEventListener('click', () => {
     const panel = document.getElementById('chat-panel');
     const btn = document.getElementById('chat-btn');
+    if (chatExpanded) toggleExpandChat();
     const open = panel.classList.toggle('visible');
     btn.classList.toggle('open', open);
     btn.textContent = open ? 'x' : '>_';
     if (open && !chatInited) initChat();
+});
+
+let chatExpanded = false;
+
+function toggleExpandChat() {
+    const panel = document.getElementById('chat-panel');
+    const overlay = document.getElementById('chat-overlay');
+    const btn = document.getElementById('chat-expand');
+    chatExpanded = !chatExpanded;
+
+    if (chatExpanded) {
+        overlay.classList.add('active');
+        panel.classList.add('expanded');
+        btn.textContent = '[v]';
+    } else {
+        overlay.classList.remove('active');
+        panel.classList.remove('expanded');
+        btn.textContent = '[^]';
+    }
+}
+
+document.getElementById('chat-overlay').addEventListener('click', () => {
+    if (chatExpanded) toggleExpandChat();
 });
 
 async function initChat() {
@@ -1172,10 +1234,13 @@ async function sendChat() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ message: msg, session_id: chatSessionId }),
         });
-        const data = await r.json();
         hideTyping();
-        chatSessionId = data.session_id;
-        handleResponse(data);
+        if (!r.ok) { addMsg('error', 'server error: ' + r.status); }
+        else {
+            const data = await r.json();
+            chatSessionId = data.session_id;
+            handleResponse(data);
+        }
     } catch (e) {
         hideTyping();
         addMsg('error', 'network error: ' + e.message);
@@ -1206,9 +1271,12 @@ async function confirmAction(approved, btn) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ session_id: chatSessionId, approved }),
         });
-        const data = await r.json();
         hideTyping();
-        handleResponse(data);
+        if (!r.ok) { addMsg('error', 'server error: ' + r.status); }
+        else {
+            const data = await r.json();
+            handleResponse(data);
+        }
     } catch (e) {
         hideTyping();
         addMsg('error', 'network error: ' + e.message);

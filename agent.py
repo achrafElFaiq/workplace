@@ -303,6 +303,71 @@ def process_message(session_id: str, user_message: str, config: dict) -> dict:
     return {"session_id": sid, "type": "error", "content": "too many tool calls, stopping"}
 
 
+def _continue_loop(sid: str, session: dict, config: dict) -> dict:
+    """Resume the tool-call loop after confirm or when the LLM issued more calls."""
+    max_iterations = 15
+    for _ in range(max_iterations):
+        last_msg = session["messages"][-1]
+        tool_calls = last_msg.get("tool_calls") if isinstance(last_msg, dict) else None
+        if not tool_calls:
+            return {"session_id": sid, "type": "text", "content": last_msg.get("content", "")}
+
+        for tc in tool_calls:
+            fn_name = tc["function"]["name"]
+            fn_args = json.loads(tc["function"]["arguments"]) if tc["function"].get("arguments") else {}
+
+            if fn_name in ("list_available_tools", "load_tools"):
+                result = _exec_meta_tool(fn_name, fn_args, session)
+                session["messages"].append({"role": "tool", "tool_call_id": tc["id"], "content": result})
+                continue
+
+            parts = fn_name.split("__", 1)
+            if len(parts) != 2:
+                session["messages"].append({"role": "tool", "tool_call_id": tc["id"], "content": json.dumps({"error": f"unknown tool: {fn_name}"})})
+                continue
+
+            slug, action_name = parts
+            info = REGISTRY.get(slug)
+            if not info or action_name not in info["actions"]:
+                session["messages"].append({"role": "tool", "tool_call_id": tc["id"], "content": json.dumps({"error": f"tool not found: {fn_name}"})})
+                continue
+
+            action = info["actions"][action_name]
+            if action.get("read", True):
+                result = _exec_api(slug, action, fn_args)
+                session["messages"].append({"role": "tool", "tool_call_id": tc["id"], "content": result})
+            else:
+                session["pending_confirm"] = {
+                    "tool_call_id": tc["id"],
+                    "tool_call": tc,
+                    "slug": slug,
+                    "action_name": action_name,
+                    "action": action,
+                    "args": fn_args,
+                    "description": action["description"],
+                    "tool_name": info["name"],
+                }
+                return {
+                    "session_id": sid,
+                    "type": "confirm",
+                    "tool": info["name"],
+                    "action": action_name,
+                    "description": action["description"],
+                    "args": fn_args,
+                }
+
+        tools_schema = _get_tool_schemas(session["loaded"])
+        llm_resp = _call_llm(session["messages"], tools_schema, config)
+        if "error" in llm_resp:
+            return {"session_id": sid, "type": "error", "content": str(llm_resp["error"])}
+
+        choice = llm_resp["choices"][0]
+        msg = choice["message"]
+        session["messages"].append(msg)
+
+    return {"session_id": sid, "type": "error", "content": "too many tool calls, stopping"}
+
+
 def confirm_action(session_id: str, approved: bool, config: dict) -> dict:
     session = sessions.get(session_id)
     if not session or not session["pending_confirm"]:
@@ -336,8 +401,6 @@ def confirm_action(session_id: str, approved: bool, config: dict) -> dict:
     session["messages"].append(msg)
 
     if msg.get("tool_calls"):
-        return process_message.__wrapped__(session_id, None, config) if hasattr(process_message, '__wrapped__') else {
-            "session_id": session_id, "type": "text", "content": msg.get("content", "")
-        }
+        return _continue_loop(session_id, session, config)
 
     return {"session_id": session_id, "type": "text", "content": msg.get("content", "")}

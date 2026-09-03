@@ -1,0 +1,152 @@
+name: Kanban Board
+slug: kanban
+description: Ticket-based Kanban board with To Do, In Progress, Review, Done columns
+port: 8501
+
+mcp:
+  actions:
+    - name: get_boards
+      description: List all Kanban boards (projects)
+      method: GET
+      path: /api/boards
+      read: true
+      params: []
+
+    - name: create_board
+      description: Create a new Kanban board (project)
+      method: POST
+      path: /api/boards
+      read: false
+      params:
+        - name: name
+          type: string
+          description: Board name
+          required: true
+
+    - name: rename_board
+      description: Rename a Kanban board
+      method: PUT
+      path: /api/boards/{board_id}
+      read: false
+      params:
+        - name: board_id
+          type: string
+          description: Board ID
+          required: true
+        - name: name
+          type: string
+          description: New name
+          required: true
+
+    - name: delete_board
+      description: Delete a board and all its tickets
+      method: DELETE
+      path: /api/boards/{board_id}
+      read: false
+      params:
+        - name: board_id
+          type: string
+          description: Board ID
+          required: true
+
+    - name: get_tickets
+      description: Get all tickets for a board, optionally filtered by status
+      method: GET
+      path: /api/boards/{board_id}/tickets
+      read: true
+      params:
+        - name: board_id
+          type: string
+          description: Board ID
+          required: true
+        - name: status
+          type: string
+          description: "Filter by status: todo, in_progress, review, done"
+          required: false
+
+    - name: create_ticket
+      description: Create a new ticket on a board
+      method: POST
+      path: /api/boards/{board_id}/tickets
+      read: false
+      params:
+        - name: board_id
+          type: string
+          description: Board ID
+          required: true
+        - name: title
+          type: string
+          description: Ticket title
+          required: true
+        - name: description
+          type: string
+          description: Detailed description
+          required: false
+        - name: status
+          type: string
+          description: "Initial status: todo (default), in_progress, review, done"
+          required: false
+        - name: priority
+          type: string
+          description: "Priority: low, medium (default), high, urgent"
+          required: false
+        - name: assignee
+          type: string
+          description: Person assigned
+          required: false
+        - name: tags
+          type: string
+          description: Comma-separated tags
+          required: false
+
+    - name: update_ticket
+      description: Update a ticket's fields
+      method: PUT
+      path: /api/tickets/{ticket_id}
+      read: false
+      params:
+        - name: ticket_id
+          type: string
+          description: Ticket ID (e.g. TK-0042)
+          required: true
+        - name: title
+          type: string
+          required: false
+        - name: description
+          type: string
+          required: false
+        - name: priority
+          type: string
+          required: false
+        - name: assignee
+          type: string
+          required: false
+        - name: tags
+          type: string
+          required: false
+
+    - name: move_ticket
+      description: Move a ticket to a different column/status
+      method: POST
+      path: /api/tickets/{ticket_id}/move
+      read: false
+      params:
+        - name: ticket_id
+          type: string
+          description: Ticket ID (e.g. TK-0042)
+          required: true
+        - name: status
+          type: string
+          description: "Target status: todo, in_progress, review, done"
+          required: true
+
+    - name: delete_ticket
+      description: Delete a ticket permanently
+      method: DELETE
+      path: /api/tickets/{ticket_id}
+      read: false
+      params:
+        - name: ticket_id
+          type: string
+          description: Ticket ID
+          required: true
