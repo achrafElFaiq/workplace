@@ -14,6 +14,7 @@ wheels/
 
 # Secrets — never commit these
 config.yaml
+agent_config.yaml
 .env
 */.env
 

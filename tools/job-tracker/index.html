@@ -427,6 +427,66 @@ a:hover { text-decoration: underline; }
 .info-box-success { background: #e8f5ec; border: 1px solid #2d6a4f; color: #1b4332; }
 .info-box-warning { background: #fdf6e3; border: 1px solid #c9a227; color: #8a6d0b; }
 .info-box-error { background: #fbe9e9; border: 1px solid #b3413e; color: #8b2020; }
+
+/* Drop zone */
+.drop-zone {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--primary);
+  background: #e8f5ec;
+}
+.drop-zone-icon {
+  font-size: 20px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.drop-zone-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.drop-zone-text strong {
+  color: var(--primary);
+  cursor: pointer;
+}
+.drop-zone-hint {
+  font-size: 11px;
+  color: #aaa;
+}
+.drop-zone input[type="file"] {
+  display: none;
+}
+.drop-zone-files {
+  margin-top: 10px;
+  text-align: left;
+}
+.drop-zone-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.drop-zone-file .file-name { color: var(--text); }
+.drop-zone-file .file-size { color: var(--text-muted); margin-left: 8px; }
+.drop-zone-file .file-remove {
+  color: #a4343a;
+  cursor: pointer;
+  margin-left: 8px;
+  font-weight: 700;
+}
+.drop-zone-file .file-remove:hover { opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -521,8 +581,13 @@ a:hover { text-decoration: underline; }
     <hr class="divider">
     <div class="mb-16">
       <label class="text-sm text-muted mb-8" style="display:block; font-weight:700;">Documents</label>
-      <input type="file" id="confirm-docs" multiple style="font-family:'JetBrains Mono',monospace; font-size:12px;">
-      <div id="confirm-docs-list" class="mt-8 text-sm text-muted"></div>
+      <div class="drop-zone" id="confirm-drop-zone">
+        <input type="file" id="confirm-docs" multiple>
+        <div class="drop-zone-icon">[+]</div>
+        <div class="drop-zone-text">glisser-deposer ou <strong>parcourir</strong></div>
+        <div class="drop-zone-hint">PDF, DOCX, TXT</div>
+        <div class="drop-zone-files" id="confirm-docs-list"></div>
+      </div>
     </div>
 
     <hr class="divider">
@@ -1120,6 +1185,8 @@ async function loadAppDetail(id, container) {
 
   container.innerHTML = html;
 
+  initDropZone('doc-drop-zone-' + id, 'doc-upload-' + id, 'doc-upload-list-' + id);
+
   // Check for generated CV/LM
   checkGenerated(id);
 }
@@ -1298,9 +1365,14 @@ function renderDocsPanel(appId, docs) {
     html += '<div class="text-sm text-muted mb-8">Aucun document.</div>';
   }
   html += '<hr class="divider">';
-  html += '<div class="form-group"><label>Ajouter des documents</label>' +
-    '<input type="file" id="doc-upload-' + appId + '" multiple style="font-family:\'JetBrains Mono\',monospace;font-size:12px;"></div>';
-  html += '<button class="btn btn-sm" onclick="uploadDocs(' + appId + ')">[save] Enregistrer documents</button>';
+  html += '<div class="drop-zone" id="doc-drop-zone-' + appId + '" onclick="document.getElementById(\'doc-upload-' + appId + '\').click()">' +
+    '<input type="file" id="doc-upload-' + appId + '" multiple>' +
+    '<div class="drop-zone-icon">[+]</div>' +
+    '<div class="drop-zone-text">glisser-deposer ou <strong>parcourir</strong></div>' +
+    '<div class="drop-zone-hint">PDF, DOCX, TXT</div>' +
+    '<div class="drop-zone-files" id="doc-upload-list-' + appId + '"></div>' +
+  '</div>';
+  html += '<button class="btn btn-sm mt-8" onclick="uploadDocs(' + appId + ')">[save] Enregistrer documents</button>';
   return html;
 }
 
@@ -1633,17 +1705,47 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
-// ── File upload preview ──
-document.getElementById('confirm-docs').addEventListener('change', function() {
-  const el = document.getElementById('confirm-docs-list');
-  if (this.files.length) {
-    el.innerHTML = Array.from(this.files).map(f =>
-      '[file] ' + esc(f.name) + ' (' + Math.round(f.size / 1024) + ' KB)'
-    ).join('<br>');
-  } else {
-    el.innerHTML = '';
-  }
-});
+// ── Drop zone ──
+function renderFileList(listEl, files) {
+  listEl.innerHTML = Array.from(files).map((f, i) =>
+    '<div class="drop-zone-file">' +
+      '<span><span class="file-name">[file] ' + esc(f.name) + '</span>' +
+      '<span class="file-size">' + Math.round(f.size / 1024) + ' KB</span></span>' +
+    '</div>'
+  ).join('');
+}
+
+function initDropZone(zoneId, inputId, listId) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  if (!zone || !input) return;
+
+  zone.addEventListener('click', function(e) {
+    if (e.target.closest('.drop-zone-file')) return;
+    input.click();
+  });
+
+  input.addEventListener('change', function() {
+    renderFileList(list, this.files);
+  });
+
+  zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+  zone.addEventListener('dragleave', function() {
+    zone.classList.remove('drag-over');
+  });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    input.files = e.dataTransfer.files;
+    renderFileList(list, input.files);
+  });
+}
+
+initDropZone('confirm-drop-zone', 'confirm-docs', 'confirm-docs-list');
 </script>
 
 </body>

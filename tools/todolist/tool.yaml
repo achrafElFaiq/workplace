@@ -7,3 +7,93 @@ entry: app.py
 default: true
 volumes:
   - data:/app/data
+
+mcp:
+  actions:
+    - name: get_all
+      description: Get all projects and their tasks
+      method: GET
+      path: /api/data
+      read: true
+
+    - name: add_project
+      description: Create a new project
+      method: POST
+      path: /api/projects
+      read: false
+      params:
+        - name: name
+          type: string
+          required: true
+          description: Project name
+        - name: emoji
+          type: string
+          description: "Emoji or icon (default: >_)"
+        - name: color
+          type: string
+          description: "Hex color (default: #2d6a4f)"
+
+    - name: archive_project
+      description: Toggle archive/unarchive a project
+      method: POST
+      path: /api/projects/{project_id}/archive
+      read: false
+      params:
+        - name: project_id
+          type: string
+          required: true
+          description: The project ID to archive or unarchive
+
+    - name: add_task
+      description: Add a task to a project
+      method: POST
+      path: /api/projects/{project_id}/tasks
+      read: false
+      params:
+        - name: project_id
+          type: string
+          required: true
+          description: The project ID to add the task to
+        - name: title
+          type: string
+          required: true
+          description: Task title
+        - name: dueDate
+          type: string
+          description: "Due date (ISO format, optional)"
+        - name: priority
+          type: string
+          description: "Priority level (optional)"
+
+    - name: toggle_task
+      description: Toggle a task done/undone
+      method: POST
+      path: /api/tasks/{task_id}/toggle
+      read: false
+      params:
+        - name: task_id
+          type: string
+          required: true
+          description: The task ID to toggle
+
+    - name: delete_task
+      description: Delete a task
+      method: DELETE
+      path: /api/tasks/{task_id}
+      read: false
+      params:
+        - name: task_id
+          type: string
+          required: true
+          description: The task ID to delete
+
+    - name: delete_project
+      description: Delete a project and all its tasks
+      method: DELETE
+      path: /api/projects/{project_id}
+      read: false
+      params:
+        - name: project_id
+          type: string
+          required: true
+          description: The project ID to delete

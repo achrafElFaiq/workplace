@@ -75,6 +75,93 @@ def save_data():
     return jsonify({"ok": True})
 
 
+def _gen_id():
+    import random, string
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
+
+
+@app.route("/api/projects", methods=["POST"])
+def add_project():
+    data = request.get_json(force=True)
+    conn = _get_db()
+    pid = _gen_id()
+    conn.execute(
+        "INSERT INTO projects (id,name,emoji,color,deadline,archived,createdAt) VALUES (?,?,?,?,?,0,?)",
+        (pid, data["name"], data.get("emoji", ">_"), data.get("color", "#2d6a4f"),
+         data.get("deadline"), datetime.now().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "id": pid})
+
+
+@app.route("/api/projects/<project_id>/tasks", methods=["POST"])
+def add_task(project_id):
+    data = request.get_json(force=True)
+    conn = _get_db()
+    p = conn.execute("SELECT id FROM projects WHERE id=?", (project_id,)).fetchone()
+    if not p:
+        conn.close()
+        return jsonify({"error": "project not found"}), 404
+    tid = _gen_id()
+    conn.execute(
+        "INSERT INTO tasks (id,project_id,title,done,dueDate,priority,doneAt,createdAt) VALUES (?,?,?,0,?,?,NULL,?)",
+        (tid, project_id, data["title"], data.get("dueDate"), data.get("priority"),
+         datetime.now().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "id": tid})
+
+
+@app.route("/api/tasks/<task_id>/toggle", methods=["POST"])
+def toggle_task(task_id):
+    conn = _get_db()
+    t = conn.execute("SELECT done FROM tasks WHERE id=?", (task_id,)).fetchone()
+    if not t:
+        conn.close()
+        return jsonify({"error": "task not found"}), 404
+    new_done = 0 if t["done"] else 1
+    done_at = datetime.now().isoformat() if new_done else None
+    conn.execute("UPDATE tasks SET done=?, doneAt=? WHERE id=?", (new_done, done_at, task_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "done": bool(new_done)})
+
+
+@app.route("/api/tasks/<task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    conn = _get_db()
+    conn.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/projects/<project_id>/archive", methods=["POST"])
+def archive_project(project_id):
+    conn = _get_db()
+    p = conn.execute("SELECT archived FROM projects WHERE id=?", (project_id,)).fetchone()
+    if not p:
+        conn.close()
+        return jsonify({"error": "project not found"}), 404
+    new_val = 0 if p["archived"] else 1
+    conn.execute("UPDATE projects SET archived=? WHERE id=?", (new_val, project_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "archived": bool(new_val)})
+
+
+@app.route("/api/projects/<project_id>", methods=["DELETE"])
+def delete_project(project_id):
+    conn = _get_db()
+    conn.execute("DELETE FROM tasks WHERE project_id=?", (project_id,))
+    conn.execute("DELETE FROM projects WHERE id=?", (project_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8502))
     app.run(host="0.0.0.0", port=port, debug=False)

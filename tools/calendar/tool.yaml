@@ -7,3 +7,137 @@ entry: app.py
 default: true
 volumes:
   - data:/app/data
+
+mcp:
+  actions:
+    - name: get_config
+      description: Get calendar categories and their colors
+      method: GET
+      path: /api/config
+      read: true
+
+    - name: list_events_month
+      description: List events for a given month
+      method: GET
+      path: /api/events/month
+      read: true
+      params:
+        - name: year
+          type: integer
+          required: true
+          description: Year (e.g. 2026)
+        - name: month
+          type: integer
+          required: true
+          description: Month (1-12)
+
+    - name: list_events_range
+      description: List events in a date range
+      method: GET
+      path: /api/events/range
+      read: true
+      params:
+        - name: start
+          type: string
+          required: true
+          description: Start date (YYYY-MM-DD)
+        - name: end
+          type: string
+          required: true
+          description: End date (YYYY-MM-DD)
+
+    - name: get_upcoming
+      description: Get upcoming events for the next N days
+      method: GET
+      path: /api/events/upcoming
+      read: true
+      params:
+        - name: days
+          type: integer
+          description: Number of days ahead (default 14)
+
+    - name: get_event
+      description: Get a single event by ID
+      method: GET
+      path: /api/events/{id}
+      read: true
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Event ID
+
+    - name: create_event
+      description: Create a new calendar event
+      method: POST
+      path: /api/events
+      read: false
+      params:
+        - name: title
+          type: string
+          required: true
+          description: Event title
+        - name: date
+          type: string
+          required: true
+          description: Event date (YYYY-MM-DD)
+        - name: time
+          type: string
+          description: Start time (HH:MM)
+        - name: end_time
+          type: string
+          description: End time (HH:MM)
+        - name: category
+          type: string
+          description: Category (personal, work, deadline, reminder)
+        - name: description
+          type: string
+          description: Event description
+        - name: all_day
+          type: boolean
+          description: Whether the event is all day
+
+    - name: update_event
+      description: Update an existing calendar event
+      method: PUT
+      path: /api/events/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Event ID
+        - name: title
+          type: string
+          required: true
+          description: Event title
+        - name: date
+          type: string
+          required: true
+          description: Event date (YYYY-MM-DD)
+        - name: time
+          type: string
+          description: Start time (HH:MM)
+        - name: end_time
+          type: string
+          description: End time (HH:MM)
+        - name: category
+          type: string
+          description: Category
+        - name: description
+          type: string
+          description: Event description
+        - name: all_day
+          type: boolean
+          description: Whether the event is all day
+
+    - name: delete_event
+      description: Delete a calendar event
+      method: DELETE
+      path: /api/events/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Event ID

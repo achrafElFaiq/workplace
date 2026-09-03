@@ -57,8 +57,13 @@ for manifest in "$TOOLS_DIR"/*/tool.yaml; do
     printf "  [ok] %-18s -> http://localhost:%s\n" "$tool_name" "$tool_port"
 done
 
-# Portal (foreground)
+# MCP Server (background)
 cd "$WORKSPACE_DIR"
+MCP_PORT=8510 uv run python mcp_server.py &
+echo $! > "$PID_DIR/mcp.pid"; disown $!
+echo "  [ok] MCP Server         -> http://localhost:8510"
+
+# Portal (foreground)
 echo "  [ok] Portal             -> http://localhost:8500"
 PORT=8500 uv run python portal.py
 

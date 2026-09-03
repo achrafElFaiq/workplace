@@ -19,6 +19,7 @@ services:
     volumes:
     - ./tools:/app/tools:ro
     - /var/run/docker.sock:/var/run/docker.sock
+    - ./agent_config.yaml:/app/agent_config.yaml
   budget:
     build: ./tools/budget
     volumes:

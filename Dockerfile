@@ -6,8 +6,10 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN uv sync --no-dev
 
-COPY portal.py index.html ./
+COPY portal.py mcp_server.py agent.py index.html start.sh ./
+RUN chmod +x start.sh
 
 ENV PORT=8501
-EXPOSE 8501
-CMD ["uv", "run", "python", "portal.py"]
+ENV MCP_PORT=8510
+EXPOSE 8501 8510
+CMD ["./start.sh"]

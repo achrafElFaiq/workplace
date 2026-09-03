@@ -35,6 +35,7 @@ def _read_manifests() -> list[dict]:
             "default": manifest.get("default", False),
             "dir": os.path.basename(os.path.dirname(manifest_path)),
             "volumes": manifest.get("volumes", []),
+            "mcp": manifest.get("mcp", {}),
         })
     return tools
 
@@ -75,6 +76,25 @@ def _tool_url(slug: str, manifest_path: str = "") -> str:
 @app.route("/")
 def index():
     return send_file("index.html")
+
+
+@app.route("/api/mcp")
+def api_mcp():
+    tools = []
+    for t in _read_manifests():
+        actions = t.get("mcp", {}).get("actions", [])
+        for action in actions:
+            tools.append({
+                "name": f"{t['slug']}__{action['name']}",
+                "tool": t["name"],
+                "description": action.get("description", ""),
+                "read": action.get("read", True),
+            })
+    return jsonify({
+        "sse_url": "/mcp/sse",
+        "tools_count": len(tools),
+        "tools": tools,
+    })
 
 
 @app.route("/api/tools")
@@ -166,6 +186,76 @@ def uninstall_tool(slug):
         return jsonify({"status": "uninstalled"})
     except docker.errors.NotFound:
         return jsonify({"status": "not_installed"})
+
+
+# ── Agent ─────────────────────────────────────
+
+from agent import get_or_create_session, process_message, confirm_action
+
+
+def _agent_config() -> dict:
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_config.yaml")
+    try:
+        with open(config_path) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+
+
+@app.route("/api/agent/chat", methods=["POST"])
+def api_agent_chat():
+    data = request.get_json()
+    message = data.get("message", "")
+    session_id = data.get("session_id")
+    if not message:
+        return jsonify({"error": "no message"}), 400
+    config = _agent_config()
+    if not config.get("api_key"):
+        return jsonify({"error": "agent not configured — add api_key to agent_config.yaml"}), 400
+    result = process_message(session_id, message, config)
+    return jsonify(result)
+
+
+@app.route("/api/agent/confirm", methods=["POST"])
+def api_agent_confirm():
+    data = request.get_json()
+    session_id = data.get("session_id")
+    approved = data.get("approved", False)
+    if not session_id:
+        return jsonify({"error": "no session_id"}), 400
+    config = _agent_config()
+    result = confirm_action(session_id, approved, config)
+    return jsonify(result)
+
+
+@app.route("/api/agent/config")
+def api_agent_get_config():
+    cfg = _agent_config()
+    return jsonify({
+        "has_api_key": bool(cfg.get("api_key")),
+        "model": cfg.get("model", "deepseek/deepseek-chat-v3"),
+        "base_url": cfg.get("base_url", "https://openrouter.ai/api/v1"),
+    })
+
+
+@app.route("/api/agent/config", methods=["POST"])
+def api_agent_save_config():
+    data = request.get_json()
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_config.yaml")
+    try:
+        with open(config_path) as f:
+            cfg = yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        cfg = {}
+    if "api_key" in data:
+        cfg["api_key"] = data["api_key"]
+    if "model" in data:
+        cfg["model"] = data["model"]
+    if "base_url" in data:
+        cfg["base_url"] = data["base_url"]
+    with open(config_path, "w") as f:
+        yaml.dump(cfg, f, default_flow_style=False)
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

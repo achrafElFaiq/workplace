@@ -7,3 +7,219 @@ entry: app.py
 volumes:
   - config.yaml:/app/config.yaml
   - data:/app/data
+
+mcp:
+  actions:
+    - name: get_stats
+      description: Get application statistics (total, per status, per source)
+      method: GET
+      path: /api/stats
+      read: true
+
+    - name: list_applications
+      description: List job applications with optional filters
+      method: GET
+      path: /api/applications
+      read: true
+      params:
+        - name: status
+          type: string
+          description: Filter by status (applied, interview, offer, rejected, ghosted)
+        - name: company
+          type: string
+          description: Filter by company name
+        - name: position
+          type: string
+          description: Filter by position title
+        - name: location
+          type: string
+          description: Filter by location
+
+    - name: get_application
+      description: Get a single job application by ID
+      method: GET
+      path: /api/applications/{id}
+      read: true
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Application ID
+
+    - name: add_application
+      description: Add a new job application
+      method: POST
+      path: /api/applications
+      read: false
+      params:
+        - name: company
+          type: string
+          required: true
+          description: Company name
+        - name: position
+          type: string
+          required: true
+          description: Job title
+        - name: url
+          type: string
+          description: Job posting URL
+        - name: source
+          type: string
+          description: Where the job was found
+        - name: location
+          type: string
+          description: Job location
+        - name: status
+          type: string
+          description: Initial status (default applied)
+        - name: notes
+          type: string
+          description: Notes about the application
+
+    - name: update_application
+      description: Update an existing job application
+      method: PUT
+      path: /api/applications/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Application ID
+        - name: company
+          type: string
+          description: Company name
+        - name: position
+          type: string
+          description: Job title
+        - name: url
+          type: string
+          description: Job posting URL
+        - name: status
+          type: string
+          description: Application status
+        - name: notes
+          type: string
+          description: Notes
+
+    - name: update_status
+      description: Update the status of a job application
+      method: PUT
+      path: /api/applications/{id}/status
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Application ID
+        - name: status
+          type: string
+          required: true
+          description: New status (applied, interview, offer, rejected, ghosted)
+
+    - name: delete_application
+      description: Delete a job application
+      method: DELETE
+      path: /api/applications/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Application ID
+
+    - name: get_status_history
+      description: Get status change history for an application
+      method: GET
+      path: /api/applications/{id}/history
+      read: true
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Application ID
+
+    - name: get_emails
+      description: Get emails matched to an application
+      method: GET
+      path: /api/applications/{id}/emails
+      read: true
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Application ID
+
+    - name: get_filter_options
+      description: Get available filter values (companies, positions, locations)
+      method: GET
+      path: /api/filter-options
+      read: true
+
+    - name: list_contacts
+      description: List networking contacts with optional filters
+      method: GET
+      path: /api/contacts
+      read: true
+      params:
+        - name: name
+          type: string
+          description: Search by name
+        - name: company
+          type: string
+          description: Filter by company
+        - name: function
+          type: string
+          description: Filter by function/role
+
+    - name: add_contact
+      description: Add a new networking contact
+      method: POST
+      path: /api/contacts
+      read: false
+      params:
+        - name: name
+          type: string
+          required: true
+          description: Contact name
+        - name: company
+          type: string
+          description: Company name
+        - name: function
+          type: string
+          description: Job function/role
+        - name: email
+          type: string
+          description: Email address
+        - name: phone
+          type: string
+          description: Phone number
+        - name: linkedin
+          type: string
+          description: LinkedIn URL
+        - name: notes
+          type: string
+          description: Notes
+
+    - name: delete_contact
+      description: Delete a networking contact
+      method: DELETE
+      path: /api/contacts/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Contact ID
+
+    - name: sync_emails
+      description: Sync emails from Gmail and match to applications
+      method: POST
+      path: /api/sync-emails
+      read: false
+
+    - name: export_csv
+      description: Export all applications as CSV
+      method: GET
+      path: /api/export
+      read: true

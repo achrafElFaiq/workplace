@@ -7,3 +7,191 @@ entry: app.py
 default: false
 volumes:
   - data:/app/data
+
+mcp:
+  actions:
+    - name: get_settings
+      description: Get budget settings (cycle start day)
+      method: GET
+      path: /api/settings
+      read: true
+
+    - name: update_settings
+      description: Update budget settings
+      method: POST
+      path: /api/settings
+      read: false
+      params:
+        - name: cycle_start_day
+          type: integer
+          required: true
+          description: Day of month the budget cycle starts
+
+    - name: list_periods
+      description: List all budget periods
+      method: GET
+      path: /api/periods
+      read: true
+
+    - name: get_period
+      description: Get a single budget period by ID
+      method: GET
+      path: /api/periods/{id}
+      read: true
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Period ID
+
+    - name: create_period
+      description: Create a new budget period
+      method: POST
+      path: /api/periods
+      read: false
+      params:
+        - name: label
+          type: string
+          required: true
+          description: Period label (e.g. "September 2026")
+        - name: start_date
+          type: string
+          required: true
+          description: Start date (YYYY-MM-DD)
+        - name: end_date
+          type: string
+          required: true
+          description: End date (YYYY-MM-DD)
+        - name: copy_from
+          type: integer
+          description: Period ID to copy planned amounts from
+
+    - name: delete_period
+      description: Delete a budget period and all its items
+      method: DELETE
+      path: /api/periods/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Period ID
+
+    - name: list_budget_items
+      description: List budget items for a period
+      method: GET
+      path: /api/periods/{period_id}/budget
+      read: true
+      params:
+        - name: period_id
+          type: integer
+          required: true
+          description: Period ID
+
+    - name: add_budget_item
+      description: Add a budget item to a period
+      method: POST
+      path: /api/periods/{period_id}/budget
+      read: false
+      params:
+        - name: period_id
+          type: integer
+          required: true
+          description: Period ID
+        - name: family
+          type: string
+          required: true
+          description: Budget family (income, fixed, variable, other, savings)
+        - name: label
+          type: string
+          required: true
+          description: Item label (e.g. "Rent", "Groceries")
+
+    - name: update_budget_item
+      description: Update a budget item (planned/actual amounts or label)
+      method: PUT
+      path: /api/budget/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Budget item ID
+        - name: planned
+          type: number
+          description: Planned amount
+        - name: actual
+          type: number
+          description: Actual amount
+        - name: label
+          type: string
+          description: Item label
+
+    - name: delete_budget_item
+      description: Delete a budget item
+      method: DELETE
+      path: /api/budget/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Budget item ID
+
+    - name: list_patrimoine_items
+      description: List net worth (patrimoine) items for a period
+      method: GET
+      path: /api/periods/{period_id}/patrimoine
+      read: true
+      params:
+        - name: period_id
+          type: integer
+          required: true
+          description: Period ID
+
+    - name: add_patrimoine_item
+      description: Add a net worth item to a period
+      method: POST
+      path: /api/periods/{period_id}/patrimoine
+      read: false
+      params:
+        - name: period_id
+          type: integer
+          required: true
+          description: Period ID
+        - name: family
+          type: string
+          required: true
+          description: Patrimoine family (assets, liabilities)
+        - name: label
+          type: string
+          required: true
+          description: Item label (e.g. "Savings account", "Car loan")
+
+    - name: update_patrimoine_item
+      description: Update a net worth item
+      method: PUT
+      path: /api/patrimoine/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Patrimoine item ID
+        - name: planned
+          type: number
+          description: Amount
+        - name: label
+          type: string
+          description: Item label
+
+    - name: delete_patrimoine_item
+      description: Delete a net worth item
+      method: DELETE
+      path: /api/patrimoine/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Patrimoine item ID

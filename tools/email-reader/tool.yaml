@@ -8,3 +8,125 @@ default: true
 volumes:
   - config.yaml:/app/config.yaml
   - data:/app/data
+
+mcp:
+  actions:
+    - name: get_stats
+      description: Get email statistics (total, unread, per category)
+      method: GET
+      path: /api/stats
+      read: true
+
+    - name: list_emails
+      description: List emails with optional filters
+      method: GET
+      path: /api/emails
+      read: true
+      params:
+        - name: category
+          type: string
+          description: Filter by category (urgent, finance, personal, updates)
+        - name: account
+          type: string
+          description: Filter by email account
+        - name: unread_only
+          type: string
+          description: Set to "1" to show only unread emails
+        - name: limit
+          type: integer
+          description: Max emails to return (default 200)
+
+    - name: get_email
+      description: Get a single email by ID
+      method: GET
+      path: /api/emails/{id}
+      read: true
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Email ID
+
+    - name: mark_read
+      description: Mark an email as read
+      method: POST
+      path: /api/emails/{id}/read
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Email ID
+
+    - name: mark_all_read
+      description: Mark all emails as read
+      method: POST
+      path: /api/emails/read-all
+      read: false
+
+    - name: delete_email
+      description: Delete an email
+      method: DELETE
+      path: /api/emails/{id}
+      read: false
+      params:
+        - name: id
+          type: integer
+          required: true
+          description: Email ID
+
+    - name: flag_sender
+      description: Block a sender and delete all their emails
+      method: POST
+      path: /api/emails/flag-sender
+      read: false
+      params:
+        - name: address
+          type: string
+          required: true
+          description: Email address to block
+
+    - name: sync
+      description: Sync emails from Gmail
+      method: POST
+      path: /api/sync
+      read: false
+      params:
+        - name: force_days
+          type: integer
+          description: Force re-sync for past N days
+
+    - name: get_sync_status
+      description: Get last sync time per account
+      method: GET
+      path: /api/sync/status
+      read: true
+
+    - name: get_last_sync
+      description: Get detailed results of the last sync
+      method: GET
+      path: /api/sync/last
+      read: true
+
+    - name: list_blocked
+      description: List blocked email senders
+      method: GET
+      path: /api/blocked
+      read: true
+
+    - name: unblock_sender
+      description: Remove a sender from the blocked list
+      method: DELETE
+      path: /api/blocked
+      read: false
+      params:
+        - name: address
+          type: string
+          required: true
+          description: Email address to unblock
+
+    - name: list_accounts
+      description: List configured email accounts
+      method: GET
+      path: /api/accounts
+      read: true
