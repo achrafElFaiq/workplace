@@ -19,6 +19,12 @@ services:
     volumes:
     - ./tools:/app/tools:ro
     - /var/run/docker.sock:/var/run/docker.sock
+  budget:
+    build: ./tools/budget
+    volumes:
+    - ./tools/budget/data:/app/data
+    profiles:
+    - marketplace
   calendar:
     build: ./tools/calendar
     volumes:

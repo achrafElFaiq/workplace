@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #fafaf5;
+  --bg-secondary: #f0f0e8;
+  --primary: #2d6a4f;
+  --primary-hover: #1b4332;
+  --primary-light: rgba(45,106,79,0.08);
+  --text: #1a1a1a;
+  --text-muted: #888888;
+  --border: #d4d4c8;
+  --border-light: #eeeeee;
+  --red: #a4343a;
+  --red-fill: rgba(164,52,58,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+  height: 100%;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Layout ── */
+.app { display: flex; position: fixed; inset: 0; }
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-title { font-size: 15px; font-weight: 700; color: var(--primary); }
+.sidebar-section {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 12px 16px 6px;
+}
+.sidebar-list { flex: 1; overflow-y: auto; }
+.sidebar-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.sidebar-item:hover { background: rgba(45,106,79,0.06); }
+.sidebar-item.active { background: var(--primary-light); color: var(--primary); font-weight: 700; }
+.sidebar-item-label { font-size: 13px; }
+.sidebar-item-dates { font-size: 11px; color: var(--text-muted); }
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+.content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  flex-shrink: 0;
+}
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--primary); font-weight: 700; border-bottom-color: var(--primary); }
+
+.tab-content { display: none; padding: 28px; flex: 1; }
+.tab-content.active { display: block; }
+
+/* ── Buttons ── */
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--primary); color: var(--bg); }
+.btn-primary { background: var(--primary); color: var(--bg); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-sm { padding: 3px 10px; font-size: 12px; }
+.btn-xs { padding: 2px 8px; font-size: 11px; }
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: var(--red); color: var(--bg); }
+.btn-ghost {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-ghost:hover { background: rgba(45,106,79,0.06); color: var(--text); }
+
+/* ── Inputs ── */
+input[type="text"], input[type="number"], input[type="date"] {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus { border-color: var(--primary); border-style: solid; }
+
+.amount-input {
+  width: 100px;
+  text-align: right;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px dashed transparent;
+  background: transparent;
+}
+.amount-input:hover { border-color: #ccc; }
+.amount-input:focus { border-color: var(--primary); border-style: solid; background: var(--bg); }
+
+/* ── Budget Grid ── */
+.budget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.budget-grid-wrap { overflow-x: auto; flex: 1; }
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) 200px;
+  gap: 0;
+  min-width: 900px;
+}
+
+.family-col {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.family-col:last-child { border-right: none; }
+
+.family-col-header {
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+}
+
+.family-sub-headers {
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+}
+.family-sub-headers span { flex: 1; padding: 4px 6px; text-align: right; }
+.family-sub-headers span:first-child { text-align: left; flex: 1.4; }
+.family-sub-headers::after { content: ''; width: 20px; flex-shrink: 0; }
+
+.family-items { flex: 1; }
+
+.fitem {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  min-height: 28px;
+}
+.fitem:hover .row-del { opacity: 1; }
+
+.fitem-label {
+  flex: 1.4;
+  font-size: 12px;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  min-width: 0;
+}
+.fitem-label:hover { background: var(--bg-secondary); }
+.fitem-label:focus { background: var(--bg); box-shadow: inset 0 0 0 1px var(--primary); }
+
+.fitem-val {
+  flex: 1;
+  font-size: 12px;
+  text-align: right;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  width: 0;
+  -moz-appearance: textfield;
+}
+.fitem-val::-webkit-outer-spin-button,
+.fitem-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fitem-val:hover { background: var(--bg-secondary); }
+.fitem-val:focus { background: var(--bg); box-shadow: inset 0 0 0 1px var(--primary); }
+.fitem-val.zero { color: var(--text-muted); }
+
+.row-del {
+  width: 20px;
+  opacity: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  padding: 2px;
+  border-radius: 3px;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+.row-del:hover { background: var(--red-fill); color: var(--red); }
+
+.family-add {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.family-total-row {
+  display: flex;
+  padding: 6px 6px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+}
+.family-total-row span { flex: 1; text-align: right; color: var(--primary); }
+.family-total-row span:first-child { flex: 1.4; text-align: left; color: var(--text-muted); }
+
+/* ── Zero Check Column ── */
+.zero-col {
+  display: flex;
+  flex-direction: column;
+}
+.zero-col-header {
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+}
+.zero-sub-headers {
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+}
+.zero-sub-headers span { flex: 1; padding: 4px 8px; text-align: right; }
+.zero-sub-headers span:first-child { text-align: left; }
+.zero-body { flex: 1; padding: 0; }
+.zero-row {
+  display: flex;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+.zero-row span { flex: 1; text-align: right; }
+.zero-row span:first-child { text-align: left; color: var(--text-muted); }
+.zero-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+.zero-row.result { font-weight: 700; background: var(--bg-secondary); }
+.zero-val.ok { color: var(--primary); }
+.zero-val.bad { color: var(--red); }
+
+/* ── Patrimoine ── */
+.pat-section { margin-bottom: 24px; }
+.nw-card {
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.nw-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.nw-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,26,26,0.2);
+  z-index: 9000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.visible { display: flex; }
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 22px 24px;
+  width: 380px;
+  max-width: 92vw;
+}
+.modal h3 { font-size: 18px; color: var(--primary); margin-bottom: 16px; }
+.form-group { margin-bottom: 12px; }
+.form-group label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.form-row { display: flex; gap: 12px; }
+.form-row > * { flex: 1; }
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--text);
+  color: var(--bg);
+  padding: 9px 15px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; }
+
+/* ── Empty state ── */
+.empty {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">[=] budget</span>
+      <button class="btn btn-sm" onclick="openNewPeriod()">[+]</button>
+    </div>
+    <div class="sidebar-section">periods</div>
+    <div class="sidebar-list" id="period-list"></div>
+    <div class="sidebar-footer">
+      <button class="btn-ghost" onclick="openSettings()">[~] settings</button>
+    </div>
+  </div>
+
+  <!-- ── Content ── -->
+  <div class="content">
+    <div class="tabs" id="main-tabs">
+      <button class="tab-btn active" onclick="switchTab('budget')">[=] Budget</button>
+      <button class="tab-btn" onclick="switchTab('patrimoine')">[~] Net Worth</button>
+    </div>
+
+    <div id="tab-budget" class="tab-content active">
+      <div id="budget-body"></div>
+    </div>
+
+    <div id="tab-patrimoine" class="tab-content">
+      <div id="pat-body"></div>
+    </div>
+
+    <div id="empty-state" class="empty" style="display:none;">
+      no periods yet — click [+] to create your first budget cycle
+    </div>
+  </div>
+</div>
+
+<!-- ── New Period Modal ── -->
+<div id="modal-new-period" class="modal-overlay">
+  <div class="modal">
+    <h3>[+] New Period</h3>
+    <div class="form-group">
+      <label>Label</label>
+      <input type="text" id="np-label" placeholder="e.g. Jun 2026">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start date</label>
+        <input type="date" id="np-start">
+      </div>
+      <div class="form-group">
+        <label>End date</label>
+        <input type="date" id="np-end">
+      </div>
+    </div>
+    <div class="form-group" id="np-copy-group" style="display:none;">
+      <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;">
+        <input type="checkbox" id="np-copy" checked style="width:auto;"> Copy planned amounts from previous period
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-new-period')">[x] Cancel</button>
+      <button class="btn btn-primary" onclick="createPeriod()">[+] Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Settings Modal ── -->
+<div id="modal-settings" class="modal-overlay">
+  <div class="modal">
+    <h3>[~] Settings</h3>
+    <div class="form-group">
+      <label>Cycle start day</label>
+      <input type="number" id="set-cycle-day" min="1" max="28" placeholder="1">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+        Day of the month when each budget cycle starts (1 = calendar months, 20 = 20th to 19th)
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-settings')">[x] Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">[ok] Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Period Confirm ── -->
+<div id="modal-del-period" class="modal-overlay">
+  <div class="modal">
+    <h3>[x] Delete Period</h3>
+    <p style="margin-bottom:16px;">Delete this period and all its budget data? This cannot be undone.</p>
+    <div class="modal-footer">
+      <button class="btn btn-danger" style="margin-right:auto;" id="confirm-del-period">[x] Delete</button>
+      <button class="btn" onclick="closeModal('modal-del-period')">[x] Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const BUDGET_FAMILIES = [
+  { key: 'income',   label: 'Income' },
+  { key: 'fixed',    label: 'Fixed Expenses' },
+  { key: 'variable', label: 'Variable Expenses' },
+  { key: 'other',    label: 'Other' },
+  { key: 'savings',  label: 'Savings' },
+];
+const PAT_FAMILIES = [
+  { key: 'assets',      label: 'Assets' },
+  { key: 'liabilities', label: 'Liabilities' },
+];
+
+let periods = [];
+let activePeriod = null;
+let cycleDay = 1;
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
+function json(u) { return fetch(u).then(r => r.json()); }
+function post(u, d) { return fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d || {}) }).then(r => r.json()); }
+function put(u, d) { return fetch(u, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d || {}) }).then(r => r.json()); }
+function del(u) { return fetch(u, { method: 'DELETE' }).then(r => r.json()); }
+function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+function showModal(id) { document.getElementById(id).classList.add('visible'); }
+
+function fmtMoney(v) {
+  if (v == null || isNaN(v)) return '0.00';
+  return Number(v).toFixed(2);
+}
+
+// ── Tabs ──
+let activeTab = 'budget';
+function switchTab(name) {
+  activeTab = name;
+  document.querySelectorAll('#main-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const idx = name === 'budget' ? 0 : 1;
+  document.querySelectorAll('#main-tabs .tab-btn')[idx].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (activePeriod) {
+    if (name === 'budget') loadBudget();
+    else loadPatrimoine();
+  }
+}
+
+// ── Sidebar ──
+async function loadPeriods() {
+  const [pList, settings] = await Promise.all([json('api/periods'), json('api/settings')]);
+  periods = pList;
+  cycleDay = settings.cycle_start_day || 1;
+  renderSidebar();
+  if (!activePeriod && periods.length) selectPeriod(periods[0].id);
+  else if (activePeriod) {
+    if (!periods.find(p => p.id === activePeriod)) {
+      activePeriod = periods.length ? periods[0].id : null;
+    }
+    if (activePeriod) selectPeriod(activePeriod);
+    else showEmpty();
+  } else {
+    showEmpty();
+  }
+}
+
+function renderSidebar() {
+  const el = document.getElementById('period-list');
+  if (!periods.length) {
+    el.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:12px;">no periods</div>';
+    return;
+  }
+  el.innerHTML = periods.map(p =>
+    '<button class="sidebar-item' + (p.id === activePeriod ? ' active' : '') + '" onclick="selectPeriod(' + p.id + ')">' +
+      '<div class="sidebar-item-label">' + esc(p.label) + '</div>' +
+      '<div class="sidebar-item-dates">' + esc(p.start_date) + ' → ' + esc(p.end_date) + '</div>' +
+    '</button>'
+  ).join('');
+}
+
+function selectPeriod(id) {
+  activePeriod = id;
+  renderSidebar();
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('main-tabs').style.display = '';
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = '');
+  if (activeTab === 'budget') loadBudget();
+  else loadPatrimoine();
+}
+
+function showEmpty() {
+  document.getElementById('empty-state').style.display = '';
+  document.getElementById('main-tabs').style.display = 'none';
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById('budget-body').innerHTML = '';
+  document.getElementById('pat-body').innerHTML = '';
+}
+
+// ── New Period ──
+function openNewPeriod() {
+  const now = new Date();
+  let startDate, endDate, label;
+
+  if (periods.length) {
+    const last = periods[0];
+    const lastEnd = new Date(last.end_date);
+    startDate = new Date(lastEnd);
+    startDate.setDate(startDate.getDate() + 1);
+    endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+    endDate.setDate(endDate.getDate() - 1);
+    document.getElementById('np-copy-group').style.display = '';
+  } else {
+    const day = cycleDay;
+    startDate = new Date(now.getFullYear(), now.getMonth(), day);
+    if (startDate > now) startDate.setMonth(startDate.getMonth() - 1);
+    endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+    endDate.setDate(endDate.getDate() - 1);
+    document.getElementById('np-copy-group').style.display = 'none';
+  }
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  label = months[startDate.getMonth()] + ' ' + startDate.getFullYear();
+
+  document.getElementById('np-label').value = label;
+  document.getElementById('np-start').value = fmtD(startDate);
+  document.getElementById('np-end').value = fmtD(endDate);
+  showModal('modal-new-period');
+}
+
+function fmtD(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+async function createPeriod() {
+  const label = document.getElementById('np-label').value.trim();
+  const start = document.getElementById('np-start').value;
+  const end = document.getElementById('np-end').value;
+  if (!label || !start || !end) { toast('[x] fill all fields'); return; }
+
+  const body = { label, start_date: start, end_date: end };
+  if (periods.length && document.getElementById('np-copy').checked) {
+    body.copy_from = periods[0].id;
+  }
+
+  const res = await post('api/periods', body);
+  closeModal('modal-new-period');
+  activePeriod = res.id;
+  toast('[ok] period created');
+  loadPeriods();
+}
+
+function confirmDeletePeriod() {
+  if (!activePeriod) return;
+  document.getElementById('confirm-del-period').onclick = async () => {
+    await del('api/periods/' + activePeriod);
+    closeModal('modal-del-period');
+    activePeriod = null;
+    toast('[ok] period deleted');
+    loadPeriods();
+  };
+  showModal('modal-del-period');
+}
+
+// ── Settings ──
+function openSettings() {
+  document.getElementById('set-cycle-day').value = cycleDay;
+  showModal('modal-settings');
+}
+
+async function saveSettings() {
+  const day = parseInt(document.getElementById('set-cycle-day').value) || 1;
+  await post('api/settings', { cycle_start_day: Math.max(1, Math.min(28, day)) });
+  cycleDay = day;
+  closeModal('modal-settings');
+  toast('[ok] settings saved');
+}
+
+// ════════════════════════════════════════════════════════════
+// BUDGET
+// ════════════════════════════════════════════════════════════
+let budgetItems = [];
+
+async function loadBudget() {
+  if (!activePeriod) return;
+  budgetItems = await json('api/periods/' + activePeriod + '/budget');
+  renderBudget();
+}
+
+function renderBudget() {
+  const period = periods.find(p => p.id === activePeriod);
+  const byFamily = {};
+  BUDGET_FAMILIES.forEach(f => { byFamily[f.key] = []; });
+  budgetItems.forEach(it => { if (byFamily[it.family]) byFamily[it.family].push(it); });
+
+  // Header
+  let html = '<div class="budget-header">' +
+    '<div><h2 style="font-size:24px;color:var(--primary);margin-bottom:2px;">' + esc(period?.label || '') + '</h2>' +
+    '<span class="sidebar-item-dates">' + esc(period?.start_date || '') + ' → ' + esc(period?.end_date || '') + '</span></div>' +
+    '<button class="btn btn-sm btn-danger" onclick="confirmDeletePeriod()">[x] Delete period</button>' +
+  '</div>';
+
+  // Compute zero check values
+  const totals = {};
+  BUDGET_FAMILIES.forEach(f => {
+    const items = byFamily[f.key];
+    totals[f.key] = {
+      planned: items.reduce((s, i) => s + (i.planned || 0), 0),
+      actual: items.reduce((s, i) => s + (i.actual || 0), 0),
+    };
+  });
+  const expP = totals.fixed.planned + totals.variable.planned + totals.other.planned;
+  const expA = totals.fixed.actual + totals.variable.actual + totals.other.actual;
+  const unassP = totals.income.planned - expP - totals.savings.planned;
+  const unassA = totals.income.actual - expA - totals.savings.actual;
+
+  // Grid
+  html += '<div class="budget-grid-wrap"><div class="budget-grid" style="border:1px solid var(--border);border-radius:6px;overflow:hidden;">';
+
+  // Family columns
+  BUDGET_FAMILIES.forEach(f => {
+    const items = byFamily[f.key];
+    html += '<div class="family-col">';
+    html += '<div class="family-col-header">' + f.label + '</div>';
+    html += '<div class="family-sub-headers"><span>item</span><span>planned</span><span>actual</span></div>';
+    html += '<div class="family-items">';
+    items.forEach(it => {
+      html += '<div class="fitem">' +
+        '<input class="fitem-label" id="label-budget-' + it.id + '" value="' + esc(it.label) + '" placeholder="item name" onblur="updateLabel(\'budget\',' + it.id + ',this.value)">' +
+        '<input class="fitem-val' + (it.planned ? '' : ' zero') + '" type="number" step="0.01" value="' + (it.planned || '') + '" placeholder="0" onfocus="this.classList.remove(\'zero\')" onblur="fmtVal(this);updateAmount(\'budget\',' + it.id + ',\'planned\',this.value)">' +
+        '<input class="fitem-val' + (it.actual ? '' : ' zero') + '" type="number" step="0.01" value="' + (it.actual || '') + '" placeholder="0" onfocus="this.classList.remove(\'zero\')" onblur="fmtVal(this);updateAmount(\'budget\',' + it.id + ',\'actual\',this.value)">' +
+        '<button class="row-del" onclick="deleteItem(\'budget\',' + it.id + ')">x</button>' +
+      '</div>';
+    });
+    html += '<div class="family-add"><button class="btn-ghost" onclick="addItem(\'budget\',\'' + f.key + '\')">[+]</button></div>';
+    html += '</div>';
+    html += '<div class="family-total-row"><span>total</span><span>' + fmtMoney(totals[f.key].planned) + '</span><span>' + fmtMoney(totals[f.key].actual) + '</span></div>';
+    html += '</div>';
+  });
+
+  // Zero check column
+  html += '<div class="zero-col">';
+  html += '<div class="zero-col-header">Zero Check</div>';
+  html += '<div class="zero-sub-headers"><span></span><span>planned</span><span>actual</span></div>';
+  html += '<div class="zero-body">';
+  html += '<div class="zero-row"><span>Income</span><span>' + fmtMoney(totals.income.planned) + '</span><span>' + fmtMoney(totals.income.actual) + '</span></div>';
+  html += '<div class="zero-row"><span>Expenses</span><span>' + fmtMoney(expP) + '</span><span>' + fmtMoney(expA) + '</span></div>';
+  html += '<div class="zero-row"><span>Savings</span><span>' + fmtMoney(totals.savings.planned) + '</span><span>' + fmtMoney(totals.savings.actual) + '</span></div>';
+  html += '<hr class="zero-divider">';
+  html += '<div class="zero-row result"><span>Unassigned</span>' +
+    '<span class="zero-val ' + (Math.abs(unassP) < 0.01 ? 'ok' : 'bad') + '">' + fmtMoney(unassP) + '</span>' +
+    '<span class="zero-val ' + (Math.abs(unassA) < 0.01 ? 'ok' : 'bad') + '">' + fmtMoney(unassA) + '</span></div>';
+  html += '</div></div>';
+
+  html += '</div></div>';
+
+  document.getElementById('budget-body').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════
+// PATRIMOINE
+// ════════════════════════════════════════════════════════════
+let patItems = [];
+
+async function loadPatrimoine() {
+  if (!activePeriod) return;
+  patItems = await json('api/periods/' + activePeriod + '/patrimoine');
+  renderPatrimoine();
+}
+
+function renderPatrimoine() {
+  const period = periods.find(p => p.id === activePeriod);
+  const byFamily = { assets: [], liabilities: [] };
+  patItems.forEach(it => { if (byFamily[it.family]) byFamily[it.family].push(it); });
+
+  const totalAssets = byFamily.assets.reduce((s, i) => s + (i.planned || 0), 0);
+  const totalLiabilities = byFamily.liabilities.reduce((s, i) => s + (i.planned || 0), 0);
+  const netWorth = totalAssets - totalLiabilities;
+
+  let html = '<div class="budget-header">' +
+    '<div><h2 style="font-size:24px;color:var(--primary);margin-bottom:2px;">Net Worth</h2>' +
+    '<span class="sidebar-item-dates">' + esc(period?.label || '') + ' — ' + esc(period?.start_date || '') + '</span></div></div>';
+
+  html += '<div class="nw-card"><div class="nw-label">NET WORTH</div><div class="nw-value">' + fmtMoney(netWorth) + '</div></div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;">';
+
+  PAT_FAMILIES.forEach((f, idx) => {
+    const items = byFamily[f.key];
+    const total = items.reduce((s, i) => s + (i.planned || 0), 0);
+
+    html += '<div class="family-col"' + (idx === 0 ? ' style="border-right:1px solid var(--border);"' : '') + '>';
+    html += '<div class="family-col-header">' + f.label + '</div>';
+    html += '<div class="family-sub-headers"><span>item</span><span>amount</span></div>';
+    html += '<div class="family-items">';
+    items.forEach(it => {
+      html += '<div class="fitem">' +
+        '<input class="fitem-label" id="label-patrimoine-' + it.id + '" value="' + esc(it.label) + '" placeholder="item name" onblur="updateLabel(\'patrimoine\',' + it.id + ',this.value)">' +
+        '<input class="fitem-val' + (it.planned ? '' : ' zero') + '" type="number" step="0.01" value="' + (it.planned || '') + '" placeholder="0" onfocus="this.classList.remove(\'zero\')" onblur="fmtVal(this);updateAmount(\'patrimoine\',' + it.id + ',\'planned\',this.value)">' +
+        '<button class="row-del" onclick="deleteItem(\'patrimoine\',' + it.id + ')">x</button>' +
+      '</div>';
+    });
+    html += '<div class="family-add"><button class="btn-ghost" onclick="addItem(\'patrimoine\',\'' + f.key + '\')">[+]</button></div>';
+    html += '</div>';
+    html += '<div class="family-total-row"><span>total</span><span>' + fmtMoney(total) + '</span></div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+
+  document.getElementById('pat-body').innerHTML = html;
+}
+
+function fmtVal(el) {
+  if (!el.value || parseFloat(el.value) === 0) { el.value = ''; el.classList.add('zero'); }
+}
+
+// ════════════════════════════════════════════════════════════
+// CRUD helpers
+// ════════════════════════════════════════════════════════════
+async function addItem(type, family) {
+  const res = await post('api/periods/' + activePeriod + '/' + type, { family, label: '' });
+  if (type === 'budget') await loadBudget(); else await loadPatrimoine();
+  const el = document.getElementById('label-' + type + '-' + res.id);
+  if (el) { el.focus(); }
+}
+
+async function updateAmount(type, id, field, value) {
+  const v = parseFloat(value) || 0;
+  await put('api/' + type + '/' + id, { [field]: v });
+  if (type === 'budget') loadBudget(); else loadPatrimoine();
+}
+
+async function updateLabel(type, id, value) {
+  if (!value.trim()) return;
+  await put('api/' + type + '/' + id, { label: value.trim() });
+}
+
+async function deleteItem(type, id) {
+  await del('api/' + type + '/' + id);
+  if (type === 'budget') loadBudget(); else loadPatrimoine();
+}
+
+// ── Modal close on overlay ──
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('visible'); });
+});
+
+// ── Boot ──
+loadPeriods();
+</script>
+
+</body>
+</html>

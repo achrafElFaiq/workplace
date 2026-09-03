@@ -1,8 +1,6 @@
-import streamlit as st
 from db.database import get_connection
 
 
-@st.cache_data(ttl=60)
 def get_events_for_month(year: int, month: int) -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
@@ -13,7 +11,6 @@ def get_events_for_month(year: int, month: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-@st.cache_data(ttl=60)
 def get_events_for_range(start: str, end: str) -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
@@ -24,7 +21,6 @@ def get_events_for_range(start: str, end: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-@st.cache_data(ttl=60)
 def get_upcoming_events(days: int = 14) -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
@@ -51,7 +47,6 @@ def add_event(title, date, time, end_time, category, description, all_day) -> in
     conn.commit()
     event_id = cur.lastrowid
     conn.close()
-    st.cache_data.clear()
     return event_id
 
 
@@ -64,7 +59,6 @@ def update_event(event_id: int, title, date, time, end_time, category, descripti
     )
     conn.commit()
     conn.close()
-    st.cache_data.clear()
 
 
 def delete_event(event_id: int):
@@ -72,4 +66,3 @@ def delete_event(event_id: int):
     conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
     conn.commit()
     conn.close()
-    st.cache_data.clear()

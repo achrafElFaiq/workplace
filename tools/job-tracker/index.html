@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #fafaf5;
+  --bg-secondary: #f0f0e8;
+  --primary: #2d6a4f;
+  --primary-hover: #1b4332;
+  --text: #1a1a1a;
+  --text-muted: #888888;
+  --border: #d4d4c8;
+  --border-light: #eeeeee;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+/* ── Layout ── */
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  background: var(--bg);
+}
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--primary);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+}
+
+.tab-content { display: none; padding: 24px; }
+.tab-content.active { display: block; }
+
+h2 { font-size: 24px; font-weight: 700; }
+h3 { font-size: 18px; font-weight: 700; }
+
+.content { }
+
+/* ── Buttons ── */
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--primary); color: var(--bg); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { background: transparent; color: var(--primary); }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--bg);
+}
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-sm { padding: 3px 10px; font-size: 12px; }
+
+.btn-danger { border-color: #b3413e; color: #b3413e; }
+.btn-danger:hover { background: #b3413e; color: #fff; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ── Inputs ── */
+
+input[type="text"], input[type="password"], input[type="url"], textarea {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus { border-color: var(--primary); border-style: solid; }
+
+select { display: none; }
+
+/* ── Custom Select ── */
+.csel {
+  position: relative;
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+.csel-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  line-height: 1.5;
+}
+.csel.open .csel-trigger,
+.csel-trigger:focus {
+  border-color: var(--primary);
+  border-style: solid;
+  outline: none;
+}
+.csel-arrow { color: var(--text-muted); font-size: 10px; margin-left: 8px; flex-shrink: 0; }
+.csel-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+}
+.csel.open .csel-dropdown { display: block; }
+.csel-opt {
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.csel-opt:hover { background: var(--bg-secondary); }
+.csel-opt.active { color: var(--primary); font-weight: 700; }
+textarea { resize: vertical; min-height: 80px; }
+
+.form-group { margin-bottom: 12px; }
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.form-row { display: flex; gap: 16px; }
+.form-row > * { flex: 1; }
+
+/* ── Cards ── */
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 14px;
+  background: var(--bg);
+}
+
+.card-title {
+  color: var(--primary);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.card-row {
+  display: flex;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.card-row:last-child { border-bottom: none; }
+
+.card-label {
+  color: var(--text-muted);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.card-half-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.card-half { flex: 1; }
+
+/* ── Metrics ── */
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.metric {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+.metric-label { font-size: 12px; color: var(--text-muted); }
+.metric-value { font-size: 24px; color: var(--primary); font-weight: 700; }
+
+/* ── Tags ── */
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid var(--primary);
+  border-radius: 3px;
+  color: var(--primary);
+  background: #e8f5ec;
+  margin: 3px;
+}
+
+/* ── Application cards ── */
+
+.app-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.app-card-header {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.app-card-header:hover { background: var(--bg-secondary); }
+.app-card-header .arrow { color: var(--text-muted); transition: transform 0.2s; }
+.app-card.open .arrow { transform: rotate(90deg); }
+.app-card-body { display: none; padding: 16px; border-top: 1px solid var(--border-light); }
+.app-card.open .app-card-body { display: block; }
+
+.status-applied { border-left: 4px solid #4a7fc7; }
+.status-applied .app-card-header { background: #e8f0fb; }
+.status-in_progress { border-left: 4px solid #c9a227; }
+.status-in_progress .app-card-header { background: #fdf6e3; }
+.status-accepted { border-left: 4px solid #2d6a4f; }
+.status-accepted .app-card-header { background: #e8f5ec; }
+.status-rejected { border-left: 4px solid #b3413e; }
+.status-rejected .app-card-header { background: #fbe9e9; }
+.status-Sans\ retour, .status-sans_retour { border-left: 4px solid #888; }
+.status-Sans\ retour .app-card-header, .status-sans_retour .app-card-header { background: #ececec; }
+
+/* ── Contact grid ── */
+
+.contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.contact-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 12px;
+  line-height: 1.4;
+  min-height: 80px;
+}
+.contact-card:hover { background: var(--bg-secondary); border-color: var(--primary); }
+
+/* ── Modal ── */
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.visible { display: flex; }
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 560px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-wide { max-width: 800px; }
+.modal h3 { color: var(--primary); margin-bottom: 16px; }
+
+/* ── Divider ── */
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* ── Toast ── */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--primary);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; }
+
+/* ── Spinner ── */
+
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Status indicators ── */
+
+.status-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot-applied { background: #4a7fc7; }
+.status-dot-in_progress { background: #c9a227; }
+.status-dot-accepted { background: #2d6a4f; }
+.status-dot-rejected { background: #b3413e; }
+.status-dot-sans_retour { background: #888; }
+
+/* ── Detail tabs ── */
+
+.detail-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin: 12px 0; }
+.detail-tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.detail-tab.active { color: var(--primary); font-weight: 700; border-bottom-color: var(--primary); }
+
+.detail-panel { display: none; }
+.detail-panel.active { display: block; }
+
+/* ── Util ── */
+
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--primary); }
+.text-sm { font-size: 12px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.gap-16 { gap: 16px; }
+.flex-1 { flex: 1; }
+.hidden { display: none; }
+.w-full { width: 100%; }
+.text-right { text-align: right; }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.list-clean { margin: 0; padding-left: 18px; line-height: 1.8; }
+.list-clean li { padding: 2px 0; }
+
+.info-box {
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.info-box-info { background: #e8f0fb; border: 1px solid #4a7fc7; color: #2a5a9c; }
+.info-box-success { background: #e8f5ec; border: 1px solid #2d6a4f; color: #1b4332; }
+.info-box-warning { background: #fdf6e3; border: 1px solid #c9a227; color: #8a6d0b; }
+.info-box-error { background: #fbe9e9; border: 1px solid #b3413e; color: #8b2020; }
+</style>
+</head>
+<body>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('add')">[+] Ajouter</button>
+  <button class="tab-btn" onclick="switchTab('dashboard')">[=] Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('contacts')">[c] Contacts</button>
+  <button class="tab-btn" onclick="switchTab('config')">[config]</button>
+</div>
+
+<!-- ═══════════════════════ TAB: AJOUTER ═══════════════════════ -->
+
+<div id="tab-add" class="tab-content active">
+<div class="content">
+
+  <!-- Step: URL -->
+  <div id="add-step-url">
+    <h2 class="text-primary mb-16">Nouvelle candidature</h2>
+    <div class="form-group">
+      <label>Colle le lien de l'offre</label>
+      <input type="url" id="add-url" placeholder="https://...">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addFromUrl()">[+] Ajouter</button>
+      <button class="btn" onclick="showAddStep('text')">Coller le texte manuellement</button>
+    </div>
+  </div>
+
+  <!-- Step: Text -->
+  <div id="add-step-text" class="hidden">
+    <h2 class="text-primary mb-16">Nouvelle candidature</h2>
+    <div class="info-box info-box-info">Le scraping a echoue ou tu preferes coller le texte. Pas de souci.</div>
+    <div class="form-group">
+      <label>Colle la description de l'offre</label>
+      <textarea id="add-text" rows="10" placeholder="Texte de l'offre..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>URL (optionnel)</label>
+      <input type="url" id="add-url-fallback">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addFromText()">[+] Extraire</button>
+      <button class="btn" onclick="showAddStep('url')">Retour</button>
+    </div>
+  </div>
+
+  <!-- Step: Confirm -->
+  <div id="add-step-confirm" class="hidden">
+    <div id="confirm-header" class="info-box info-box-success mb-16"></div>
+
+    <div class="form-row mb-16">
+      <div class="form-group">
+        <label>Source</label>
+        <select id="confirm-source">
+          <option>linkedin</option><option>wttj</option><option>indeed</option>
+          <option>hellowork</option><option>apec</option><option>site_carriere</option>
+          <option>email</option><option>autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Email utilise</label>
+        <select id="confirm-email"></select>
+      </div>
+    </div>
+
+    <!-- Extraction detail -->
+    <details class="mb-16">
+      <summary class="text-muted text-sm" style="cursor:pointer">Detail de l'extraction</summary>
+      <pre id="confirm-json" style="background:var(--bg-secondary); padding:12px; border-radius:6px; overflow-x:auto; font-size:11px; margin-top:8px; max-height:300px; overflow-y:auto;"></pre>
+    </details>
+
+    <!-- Keywords -->
+    <div id="confirm-keywords" class="mb-16"></div>
+
+    <hr class="divider">
+
+    <!-- Generate CV / LM -->
+    <div class="form-row mb-16">
+      <div>
+        <button class="btn w-full" id="gen-cv-btn" onclick="generateCV()">[cv] Generer CV</button>
+        <div id="gen-cv-result" class="mt-8"></div>
+      </div>
+      <div>
+        <button class="btn w-full" id="gen-lm-btn" onclick="generateLM()">[lm] Generer Lettre de motivation</button>
+        <div id="gen-lm-result" class="mt-8"></div>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <hr class="divider">
+    <div class="mb-16">
+      <label class="text-sm text-muted mb-8" style="display:block; font-weight:700;">Documents</label>
+      <input type="file" id="confirm-docs" multiple style="font-family:'JetBrains Mono',monospace; font-size:12px;">
+      <div id="confirm-docs-list" class="mt-8 text-sm text-muted"></div>
+    </div>
+
+    <hr class="divider">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveApplication()">[ok] Sauvegarder</button>
+      <button class="btn" onclick="editText()">[edit] Corriger le texte</button>
+      <button class="btn btn-danger" onclick="cancelAdd()">[x] Annuler</button>
+    </div>
+  </div>
+
+  <!-- Loading overlay for add -->
+  <div id="add-loading" class="hidden" style="text-align:center; padding:40px;">
+    <span class="spinner"></span> <span id="add-loading-msg">Scraping en cours...</span>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════ TAB: DASHBOARD ═══════════════════════ -->
+
+<div id="tab-dashboard" class="tab-content">
+<div class="content">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <h2 class="text-primary" style="margin:0;">Dashboard</h2>
+    <div class="btn-row" style="margin:0;">
+      <button class="btn" onclick="syncEmails()" id="sync-btn">[sync] Gmail</button>
+      <button class="btn" onclick="markGhosted()" id="ghost-btn">[ghost] 30j sans reponse</button>
+      <button class="btn" onclick="exportCSV()">[export] CSV</button>
+    </div>
+  </div>
+
+  <!-- Sync result -->
+  <div id="sync-result" class="hidden mb-16"></div>
+
+  <!-- Stats -->
+  <div id="dash-stats" class="metrics-row"></div>
+
+  <hr class="divider">
+
+  <!-- Filters -->
+  <div class="form-row mb-16">
+    <div class="form-group">
+      <label>Statut</label>
+      <select id="filter-status" onchange="loadApplications()">
+        <option value="">Tous</option>
+        <option>applied</option><option>in_progress</option>
+        <option>accepted</option><option>rejected</option><option>Sans retour</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Source</label>
+      <select id="filter-source" onchange="loadApplications()">
+        <option value="">Tous</option>
+        <option>linkedin</option><option>wttj</option><option>indeed</option>
+        <option>hellowork</option><option>apec</option><option>site_carriere</option>
+        <option>email</option><option>autre</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row mb-16">
+    <div class="form-group">
+      <label>Entreprise</label>
+      <select id="filter-company" onchange="loadApplications()"><option value="">Tous</option></select>
+    </div>
+    <div class="form-group">
+      <label>Poste</label>
+      <select id="filter-position" onchange="loadApplications()"><option value="">Tous</option></select>
+    </div>
+    <div class="form-group">
+      <label>Localisation</label>
+      <select id="filter-location" onchange="loadApplications()"><option value="">Tous</option></select>
+    </div>
+  </div>
+
+  <!-- Application list -->
+  <div id="app-list"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════ TAB: CONTACTS ═══════════════════════ -->
+
+<div id="tab-contacts" class="tab-content">
+<div class="content">
+  <h2 class="text-primary mb-16">Contacts</h2>
+
+  <button class="btn btn-primary mb-16" onclick="showAddContactModal()">[+] Ajouter un contact</button>
+
+  <hr class="divider">
+
+  <div class="form-row mb-16">
+    <div class="form-group">
+      <label>Recherche (nom)</label>
+      <input type="text" id="contact-search" oninput="loadContacts()" placeholder="Nom...">
+    </div>
+    <div class="form-group">
+      <label>Entreprise</label>
+      <select id="contact-filter-company" onchange="loadContacts()"><option value="">Tous</option></select>
+    </div>
+    <div class="form-group">
+      <label>Fonction</label>
+      <select id="contact-filter-function" onchange="loadContacts()"><option value="">Tous</option></select>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div id="contacts-list" class="contacts-grid"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════ TAB: CONFIG ═══════════════════════ -->
+
+<div id="tab-config" class="tab-content">
+<div class="content">
+  <h2 class="text-primary mb-16">[config]</h2>
+
+  <div class="form-row mb-16">
+    <div class="form-group">
+      <label>OpenRouter API Key</label>
+      <input type="password" id="cfg-api-key">
+    </div>
+    <div class="form-group">
+      <label>Model</label>
+      <input type="text" id="cfg-model" value="google/gemini-2.5-flash">
+    </div>
+  </div>
+
+  <h3 class="text-primary mb-8" style="font-size:14px;">Gmail Accounts</h3>
+  <p class="text-sm text-muted mb-16">Use Gmail app-specific passwords (not your main password).</p>
+
+  <div id="gmail-accounts"></div>
+
+  <button class="btn btn-sm mb-16" onclick="addGmailRow()">[+] Add account</button>
+
+  <hr class="divider">
+
+  <button class="btn btn-primary" onclick="saveConfig()">[save] Save config</button>
+  <div id="config-msg" class="mt-8"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════ MODALS ═══════════════════════ -->
+
+<!-- Add contact modal -->
+<div id="modal-add-contact" class="modal-overlay">
+  <div class="modal">
+    <h3>Ajouter un contact</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Prenom</label><input type="text" id="new-contact-first"></div>
+      <div class="form-group"><label>Nom</label><input type="text" id="new-contact-last"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fonction</label><input type="text" id="new-contact-function"></div>
+      <div class="form-group"><label>Entreprise</label><input type="text" id="new-contact-company"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email (optionnel)</label><input type="text" id="new-contact-email"></div>
+      <div class="form-group"><label>Telephone (optionnel)</label><input type="text" id="new-contact-phone"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveNewContact()">[save] Enregistrer</button>
+      <button class="btn" onclick="closeModal('modal-add-contact')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- View contact modal -->
+<div id="modal-view-contact" class="modal-overlay">
+  <div class="modal modal-wide">
+    <div id="view-contact-content"></div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div id="modal-confirm" class="modal-overlay">
+  <div class="modal">
+    <p class="mb-16" id="confirm-msg">Irreversible. Tu confirmes ?</p>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="confirm-yes-btn">Oui</button>
+      <button class="btn" onclick="closeModal('modal-confirm')">Non</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ── State ──
+let extractedData = null;
+let pendingCV = null;
+let pendingLM = null;
+
+// ── Utils ──
+
+function api(path, opts) {
+  return fetch(path, opts).then(r => {
+    if (!r.ok && r.headers.get('content-type')?.includes('json')) return r.json().then(d => Promise.reject(d));
+    return r;
+  });
+}
+
+function json(path, opts) {
+  return api(path, opts).then(r => r.json());
+}
+
+function post(path, data) {
+  return json(path, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+}
+
+function put(path, data) {
+  return json(path, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+}
+
+function del(path) {
+  return json(path, { method: 'DELETE' });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('visible');
+}
+
+function showModal(id) {
+  document.getElementById(id).classList.add('visible');
+}
+
+function statusClass(s) {
+  return 'status-' + (s || 'applied').replace(/\s+/g, '_').toLowerCase();
+}
+
+function statusDotClass(s) {
+  return 'status-dot-' + (s || 'applied').replace(/\s+/g, '_').toLowerCase();
+}
+
+function downloadBlob(b64, filename, mime) {
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  const blob = new Blob([arr], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Tab switching ──
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const tabs = { add: 0, dashboard: 1, contacts: 2, config: 3 };
+  document.querySelectorAll('.tab-btn')[tabs[name]].classList.add('active');
+
+  if (name === 'dashboard') { loadStats(); loadFilterOptions(); loadApplications(); }
+  if (name === 'contacts') { loadContactFilterOptions(); loadContacts(); }
+  if (name === 'config') { loadConfig(); }
+}
+
+// ═══════════════════════ ADD TAB ═══════════════════════
+
+function showAddStep(step) {
+  document.getElementById('add-step-url').classList.add('hidden');
+  document.getElementById('add-step-text').classList.add('hidden');
+  document.getElementById('add-step-confirm').classList.add('hidden');
+  document.getElementById('add-loading').classList.add('hidden');
+  document.getElementById('add-step-' + step).classList.remove('hidden');
+}
+
+function showLoading(msg) {
+  document.getElementById('add-loading-msg').textContent = msg;
+  document.getElementById('add-step-url').classList.add('hidden');
+  document.getElementById('add-step-text').classList.add('hidden');
+  document.getElementById('add-step-confirm').classList.add('hidden');
+  document.getElementById('add-loading').classList.remove('hidden');
+}
+
+async function addFromUrl() {
+  const url = document.getElementById('add-url').value.trim();
+  if (!url) { toast('Colle un lien.'); return; }
+  showLoading('Scraping en cours...');
+  try {
+    const res = await post('api/scrape', { url });
+    if (!res.text) {
+      document.getElementById('add-url-fallback').value = url;
+      showAddStep('text');
+      return;
+    }
+    showLoading('Extraction LLM...');
+    const ext = await post('api/extract', { text: res.text });
+    if (!ext.data) {
+      document.getElementById('add-url-fallback').value = url;
+      showAddStep('text');
+      toast('Extraction echouee. Essaie en collant le texte.');
+      return;
+    }
+    ext.data.url = url;
+    ext.data.raw_text = res.text;
+    extractedData = ext.data;
+    pendingCV = null;
+    pendingLM = null;
+    showConfirm();
+  } catch (e) {
+    showAddStep('url');
+    toast('Erreur: ' + (e.error || e.message || 'echec'));
+  }
+}
+
+async function addFromText() {
+  const text = document.getElementById('add-text').value.trim();
+  if (!text) { toast('Colle le texte de l\'offre.'); return; }
+  const url = document.getElementById('add-url-fallback').value.trim();
+  showLoading('Nettoyage du texte...');
+  try {
+    const cleaned = await post('api/clean-text', { text });
+    showLoading('Extraction LLM...');
+    const ext = await post('api/extract', { text: cleaned.text });
+    if (!ext.data) { showAddStep('text'); toast('Extraction echouee.'); return; }
+    ext.data.url = url;
+    ext.data.raw_text = cleaned.text;
+    extractedData = ext.data;
+    pendingCV = null;
+    pendingLM = null;
+    showConfirm();
+  } catch (e) {
+    showAddStep('text');
+    toast('Erreur: ' + (e.error || e.message || 'echec'));
+  }
+}
+
+async function showConfirm() {
+  showAddStep('confirm');
+  document.getElementById('confirm-header').textContent =
+    (extractedData.company || '?') + ' · ' + (extractedData.position || '?');
+  document.getElementById('confirm-json').textContent = JSON.stringify(extractedData, null, 2);
+
+  // Keywords
+  const kws = extractedData.keywords || [];
+  const kwEl = document.getElementById('confirm-keywords');
+  if (kws.length) {
+    kwEl.innerHTML = '<label class="text-sm text-muted mb-8" style="display:block;font-weight:700;">Mots-cles</label>' +
+      '<div>' + kws.map(k => '<span class="tag">' + esc(k) + '</span>').join('') + '</div>';
+  } else {
+    kwEl.innerHTML = '';
+  }
+
+  // Gmail emails
+  try {
+    const emails = await json('api/gmail-emails');
+    const sel = document.getElementById('confirm-email');
+    sel.innerHTML = emails.map(e => '<option>' + esc(e) + '</option>').join('');
+  } catch (e) {}
+
+  // Reset gen results
+  document.getElementById('gen-cv-result').innerHTML = '';
+  document.getElementById('gen-lm-result').innerHTML = '';
+}
+
+async function generateCV() {
+  const btn = document.getElementById('gen-cv-btn');
+  const res = document.getElementById('gen-cv-result');
+  btn.disabled = true;
+  res.innerHTML = '<span class="spinner"></span> Generation en cours...';
+  try {
+    const d = await post('api/generate/cv', extractedData);
+    if (d.warnings) d.warnings.forEach(w => res.innerHTML += '<div class="info-box info-box-warning mt-8">' + esc(w) + '</div>');
+    pendingCV = d;
+    res.innerHTML = '<button class="btn btn-sm" onclick="downloadCV()">[dl] Telecharger CV</button>';
+  } catch (e) {
+    res.innerHTML = '<div class="info-box info-box-error">' + esc(e.error || 'Erreur') + '</div>';
+    if (e.log) res.innerHTML += '<details class="mt-8"><summary class="text-sm text-muted">Log</summary><pre style="font-size:11px;max-height:200px;overflow:auto;">' + esc(e.log) + '</pre></details>';
+  }
+  btn.disabled = false;
+}
+
+function downloadCV() {
+  if (pendingCV?.pdf) {
+    const name = 'CV_' + (extractedData.company || '') + '_' + (extractedData.position || '') + '.pdf';
+    downloadBlob(pendingCV.pdf, name, 'application/pdf');
+  }
+}
+
+async function generateLM() {
+  const btn = document.getElementById('gen-lm-btn');
+  const res = document.getElementById('gen-lm-result');
+  btn.disabled = true;
+  res.innerHTML = '<span class="spinner"></span> Generation en cours...';
+  try {
+    const d = await post('api/generate/cover-letter', extractedData);
+    if (d.warnings) d.warnings.forEach(w => res.innerHTML += '<div class="info-box info-box-warning mt-8">' + esc(w) + '</div>');
+    pendingLM = d;
+    res.innerHTML = '<button class="btn btn-sm" onclick="downloadLM()">[dl] Telecharger Lettre</button>';
+  } catch (e) {
+    res.innerHTML = '<div class="info-box info-box-error">' + esc(e.error || 'Erreur') + '</div>';
+    if (e.log) res.innerHTML += '<details class="mt-8"><summary class="text-sm text-muted">Log</summary><pre style="font-size:11px;max-height:200px;overflow:auto;">' + esc(e.log) + '</pre></details>';
+  }
+  btn.disabled = false;
+}
+
+function downloadLM() {
+  if (pendingLM?.pdf) {
+    const name = 'LM_' + (extractedData.company || '') + '_' + (extractedData.position || '') + '.pdf';
+    downloadBlob(pendingLM.pdf, name, 'application/pdf');
+  }
+}
+
+async function saveApplication() {
+  const data = { ...extractedData };
+  data.source = document.getElementById('confirm-source').value;
+  data.applied_via_email = document.getElementById('confirm-email').value;
+
+  try {
+    const res = await post('api/applications', data);
+    const appId = res.id;
+
+    if (pendingCV?.tex) await post('api/save-generated', { app_id: appId, kind: 'cv', tex: pendingCV.tex });
+    if (pendingLM?.tex) await post('api/save-generated', { app_id: appId, kind: 'lettre', tex: pendingLM.tex });
+
+    // Upload documents
+    const fileInput = document.getElementById('confirm-docs');
+    if (fileInput.files.length) {
+      for (const f of fileInput.files) {
+        const fd = new FormData();
+        fd.append('file', f);
+        await api('api/applications/' + appId + '/documents', { method: 'POST', body: fd });
+      }
+    }
+
+    extractedData = null;
+    pendingCV = null;
+    pendingLM = null;
+    document.getElementById('add-url').value = '';
+    document.getElementById('add-text').value = '';
+    document.getElementById('add-url-fallback').value = '';
+    showAddStep('url');
+    toast('Candidature #' + appId + ' ajoutee');
+  } catch (e) {
+    toast('Erreur: ' + (e.error || 'echec'));
+  }
+}
+
+function editText() {
+  extractedData = null;
+  pendingCV = null;
+  pendingLM = null;
+  showAddStep('text');
+}
+
+function cancelAdd() {
+  extractedData = null;
+  pendingCV = null;
+  pendingLM = null;
+  document.getElementById('add-url').value = '';
+  showAddStep('url');
+}
+
+// ═══════════════════════ DASHBOARD TAB ═══════════════════════
+
+async function loadStats() {
+  const stats = await json('api/stats');
+  const statuses = ['applied', 'in_progress', 'accepted', 'rejected', 'Sans retour'];
+  let html = '<div class="metric"><div class="metric-label">Total</div><div class="metric-value">' + stats.total + '</div></div>';
+  html += '<div class="metric"><div class="metric-label">Taux de reponse</div><div class="metric-value">' + stats.response_rate + '%</div></div>';
+  statuses.forEach(s => {
+    html += '<div class="metric"><div class="metric-label">' + esc(s) + '</div><div class="metric-value">' + (stats.by_status[s] || 0) + '</div></div>';
+  });
+  document.getElementById('dash-stats').innerHTML = html;
+}
+
+async function loadFilterOptions() {
+  const opts = await json('api/filter-options');
+  fillSelect('filter-company', opts.companies);
+  fillSelect('filter-position', opts.positions);
+  fillSelect('filter-location', opts.locations);
+}
+
+function fillSelect(id, items) {
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Tous</option>' + items.map(i => '<option>' + esc(i) + '</option>').join('');
+  sel.value = current;
+}
+
+async function loadApplications() {
+  const params = new URLSearchParams();
+  const s = document.getElementById('filter-status').value;
+  const src = document.getElementById('filter-source').value;
+  const c = document.getElementById('filter-company').value;
+  const p = document.getElementById('filter-position').value;
+  const l = document.getElementById('filter-location').value;
+  if (s) params.set('status', s);
+  if (src) params.set('source', src);
+  if (c) params.set('company', c);
+  if (p) params.set('position', p);
+  if (l) params.set('location', l);
+
+  const apps = await json('api/applications?' + params);
+  const listEl = document.getElementById('app-list');
+
+  if (!apps.length) {
+    listEl.innerHTML = '<div class="info-box info-box-info">Aucune candidature.</div>';
+    return;
+  }
+
+  listEl.innerHTML = apps.map(a => {
+    const sc = statusClass(a.status);
+    return '<div class="app-card ' + sc + '" id="app-' + a.id + '">' +
+      '<div class="app-card-header" onclick="toggleApp(' + a.id + ')">' +
+        '<span><span class="status-dot ' + statusDotClass(a.status) + '"></span>' +
+        esc(a.company) + ' · ' + esc(a.position) + ' · ' + esc(a.location || 'N/A') + ' · ' + esc(a.applied_at) + '</span>' +
+        '<span class="arrow">&#9654;</span>' +
+      '</div>' +
+      '<div class="app-card-body" id="app-body-' + a.id + '"></div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleApp(id) {
+  const card = document.getElementById('app-' + id);
+  if (card.classList.contains('open')) {
+    card.classList.remove('open');
+    return;
+  }
+  card.classList.add('open');
+  const body = document.getElementById('app-body-' + id);
+  if (body.dataset.loaded) return;
+  body.dataset.loaded = '1';
+  loadAppDetail(id, body);
+}
+
+async function loadAppDetail(id, container) {
+  container.innerHTML = '<span class="spinner"></span> Chargement...';
+  const [app, emails, history, docs] = await Promise.all([
+    json('api/applications/' + id),
+    json('api/applications/' + id + '/emails'),
+    json('api/applications/' + id + '/history'),
+    json('api/applications/' + id + '/documents'),
+  ]);
+
+  let html = renderAppSummary(app, emails);
+
+  // Status history
+  if (history.length > 1) {
+    html += '<details class="mb-16"><summary class="text-sm text-muted" style="cursor:pointer">Historique des statuts</summary><div class="mt-8">';
+    history.forEach(h => {
+      html += '<div class="text-sm text-muted">' + esc(h.changed_at) + ' · ' + esc(h.old_status || '—') + ' -> ' + esc(h.new_status) + ' (' + esc(h.trigger) + ')</div>';
+    });
+    html += '</div></details>';
+  }
+
+  // Detail tabs: Status | Edit
+  html += '<div class="detail-tabs">' +
+    '<button class="detail-tab active" onclick="switchDetailTab(this,\'dtab-status-' + id + '\')">[status] Statut</button>' +
+    '<button class="detail-tab" onclick="switchDetailTab(this,\'dtab-edit-' + id + '\')">[edit] Modifier</button>' +
+    '<button class="detail-tab" onclick="switchDetailTab(this,\'dtab-docs-' + id + '\')">[docs] Documents (' + docs.length + ')</button>' +
+  '</div>';
+
+  // Status panel
+  html += '<div class="detail-panel active" id="dtab-status-' + id + '">';
+  html += '<div class="form-group"><label>Changer le statut</label>' +
+    '<select id="status-sel-' + id + '" style="max-width:300px;">' +
+    ['applied','in_progress','accepted','rejected','Sans retour'].map(s =>
+      '<option' + (s === app.status ? ' selected' : '') + '>' + esc(s) + '</option>'
+    ).join('') + '</select></div>';
+  html += '<button class="btn btn-sm" onclick="changeStatus(' + id + ')">[ok] Mettre a jour</button>';
+  html += '<hr class="divider">';
+  html += '<button class="btn btn-sm btn-danger" onclick="confirmDeleteApp(' + id + ')">[x] Supprimer</button>';
+  html += '</div>';
+
+  // Edit panel
+  html += '<div class="detail-panel" id="dtab-edit-' + id + '">';
+  html += renderEditForm(app);
+  html += '</div>';
+
+  // Documents panel
+  html += '<div class="detail-panel" id="dtab-docs-' + id + '">';
+  html += renderDocsPanel(app.id, docs);
+  html += '</div>';
+
+  container.innerHTML = html;
+
+  // Check for generated CV/LM
+  checkGenerated(id);
+}
+
+function renderAppSummary(app, emails) {
+  const stack = (app.stack || []).join(', ') || 'N/A';
+  const urlLink = app.url ? '<a href="' + esc(app.url) + '" target="_blank">Voir l\'offre ↗</a>' : 'N/A';
+
+  let html = '<div style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px;">' +
+    esc(app.company) + ' · ' + esc(app.position) + '</div>';
+  html += '<div class="text-sm text-muted mb-16">' +
+    esc(app.location || 'N/A') + ' · ' + esc(app.source || '') + ' · ' +
+    '<span class="status-dot ' + statusDotClass(app.status) + '"></span>' + esc(app.status) +
+    ' · ' + esc(app.applied_at) + '</div>';
+
+  html += '<div class="card-half-row">';
+  html += '<div class="card card-half">' +
+    '<div class="card-row"><span class="card-label">Contrat:</span><span>' + esc(app.contract_type || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Salaire:</span><span>' + esc(app.salary || 'Non mentionne') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Seniorite:</span><span>' + esc(app.seniority || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Stack:</span><span>' + esc(stack) + '</span></div>' +
+  '</div>';
+  html += '<div class="card card-half">' +
+    '<div class="card-row"><span class="card-label">Secteur:</span><span>' + esc(app.sector || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Contact:</span><span>' + esc(app.contact || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Offre:</span><span>' + urlLink + '</span></div>' +
+  '</div>';
+  html += '</div>';
+
+  // Missions
+  if (app.missions?.length) {
+    html += '<div class="card"><div class="card-title">&gt; Missions</div><ul class="list-clean">' +
+      app.missions.map(m => '<li>' + esc(m) + '</li>').join('') + '</ul></div>';
+  }
+
+  // Requirements
+  if (app.requirements?.length) {
+    html += '<div class="card"><div class="card-title">&gt; Prerequis</div><ul class="list-clean">' +
+      app.requirements.map(r => '<li>' + esc(r) + '</li>').join('') + '</ul></div>';
+  }
+
+  // Process
+  if (app.process?.length) {
+    html += '<div class="card"><div class="card-title">&gt; Process de recrutement</div><ol class="list-clean">' +
+      app.process.map(p => '<li>' + esc(p) + '</li>').join('') + '</ol></div>';
+  }
+
+  // Keywords
+  if (app.keywords?.length) {
+    html += '<div class="card"><div class="card-title">&gt; Mots-cles</div><div>' +
+      app.keywords.map(k => '<span class="tag">' + esc(k) + '</span>').join('') + '</div></div>';
+  }
+
+  // Emails
+  if (emails.length) {
+    html += '<div class="card"><div class="card-title">&gt; Emails (' + emails.length + ')</div>';
+    emails.forEach(em => {
+      html += '<div class="card-row" style="border-bottom:1px solid var(--border-light);">' +
+        '<span class="text-muted">[' + esc(em.classification || 'other') + ']</span>&nbsp;' +
+        '<b>' + esc(em.subject) + '</b>&nbsp;' +
+        '<span class="text-muted">— ' + esc(em.received_at) + '</span>&nbsp;' +
+        (em.gmail_link ? '<a href="' + esc(em.gmail_link) + '" target="_blank">↗</a>' : '') +
+      '</div>';
+    });
+    html += '</div>';
+  }
+
+  // CV/LM compile buttons
+  html += '<div class="form-row mb-16" id="gen-row-' + app.id + '">' +
+    '<div id="gen-cv-dash-' + app.id + '"></div>' +
+    '<div id="gen-lm-dash-' + app.id + '"></div>' +
+  '</div>';
+
+  return html;
+}
+
+async function checkGenerated(appId) {
+  const [cv, lm] = await Promise.all([
+    json('api/generated/' + appId + '/cv'),
+    json('api/generated/' + appId + '/lettre'),
+  ]);
+  const cvEl = document.getElementById('gen-cv-dash-' + appId);
+  const lmEl = document.getElementById('gen-lm-dash-' + appId);
+  if (!cvEl) return;
+
+  if (cv.exists) {
+    cvEl.innerHTML = '<button class="btn btn-sm w-full" onclick="compileDash(' + appId + ',\'cv\')">[cv] Compiler le CV utilise</button><div id="cv-dl-' + appId + '" class="mt-8"></div>';
+  } else {
+    cvEl.innerHTML = '<span class="text-sm text-muted">[cv] Aucun CV genere</span>';
+  }
+
+  if (lm.exists) {
+    lmEl.innerHTML = '<button class="btn btn-sm w-full" onclick="compileDash(' + appId + ',\'lettre\')">[lm] Compiler la lettre</button><div id="lm-dl-' + appId + '" class="mt-8"></div>';
+  } else {
+    lmEl.innerHTML = '<span class="text-sm text-muted">[lm] Aucune lettre generee</span>';
+  }
+}
+
+async function compileDash(appId, kind) {
+  const prefix = kind === 'cv' ? 'cv' : 'lm';
+  const dlEl = document.getElementById(prefix + '-dl-' + appId);
+  dlEl.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await post('api/compile/' + appId + '/' + kind, {});
+    const app = await json('api/applications/' + appId);
+    const label = kind === 'cv' ? 'CV' : 'Lettre';
+    const filename = label + '_' + (app.company || '') + '_' + (app.position || '') + '.pdf';
+    dlEl.innerHTML = '<button class="btn btn-sm" onclick="downloadBlob(\'' + res.pdf.substring(0, 100) + '...\',\'' + filename + '\',\'application/pdf\')">[dl] Telecharger</button>';
+    // Store for direct download
+    dlEl.dataset.pdf = res.pdf;
+    dlEl.dataset.filename = filename;
+    dlEl.innerHTML = '<button class="btn btn-sm" onclick="dlFromEl(this.parentElement)">[dl] Telecharger ' + label + '</button>';
+  } catch (e) {
+    dlEl.innerHTML = '<div class="info-box info-box-error text-sm">' + esc(e.error || 'Erreur') + '</div>';
+  }
+}
+
+function dlFromEl(el) {
+  if (el.dataset.pdf) downloadBlob(el.dataset.pdf, el.dataset.filename, 'application/pdf');
+}
+
+function renderEditForm(app) {
+  let html = '<div class="form-row"><div class="form-group"><label>Entreprise</label><input type="text" id="edit-company-' + app.id + '" value="' + esc(app.company || '') + '"></div>' +
+    '<div class="form-group"><label>Poste</label><input type="text" id="edit-position-' + app.id + '" value="' + esc(app.position || '') + '"></div></div>';
+  html += '<div class="form-row"><div class="form-group"><label>Localisation</label><input type="text" id="edit-location-' + app.id + '" value="' + esc(app.location || '') + '"></div>' +
+    '<div class="form-group"><label>Contrat</label><input type="text" id="edit-contract-' + app.id + '" value="' + esc(app.contract_type || '') + '"></div></div>';
+  html += '<div class="form-row"><div class="form-group"><label>Salaire</label><input type="text" id="edit-salary-' + app.id + '" value="' + esc(app.salary || '') + '"></div>' +
+    '<div class="form-group"><label>Seniorite</label><input type="text" id="edit-seniority-' + app.id + '" value="' + esc(app.seniority || '') + '"></div></div>';
+  html += '<div class="form-row"><div class="form-group"><label>Secteur</label><input type="text" id="edit-sector-' + app.id + '" value="' + esc(app.sector || '') + '"></div>' +
+    '<div class="form-group"><label>Contact</label><input type="text" id="edit-contact-' + app.id + '" value="' + esc(app.contact || '') + '"></div></div>';
+  html += '<div class="form-group"><label>Stack (virgules)</label><input type="text" id="edit-stack-' + app.id + '" value="' + esc((app.stack || []).join(', ')) + '"></div>';
+  html += '<div class="form-group"><label>Notes</label><textarea id="edit-notes-' + app.id + '" rows="3">' + esc(app.notes || '') + '</textarea></div>';
+  html += '<button class="btn btn-primary btn-sm" onclick="saveEdit(' + app.id + ')">[save] Sauvegarder</button>';
+  return html;
+}
+
+async function saveEdit(id) {
+  const v = f => document.getElementById(f + '-' + id)?.value || '';
+  const stackStr = v('edit-stack');
+  const data = {
+    company: v('edit-company'), position: v('edit-position'),
+    location: v('edit-location'), contract_type: v('edit-contract'),
+    salary: v('edit-salary') || null, seniority: v('edit-seniority'),
+    sector: v('edit-sector') || null, contact: v('edit-contact') || null,
+    stack: stackStr ? stackStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+    missions: [], requirements: [],
+    company_size: null, notes: v('edit-notes') || null,
+  };
+  // Preserve missions/requirements from the existing data
+  const app = await json('api/applications/' + id);
+  data.missions = app.missions || [];
+  data.requirements = app.requirements || [];
+  data.company_size = app.company_size;
+
+  await put('api/applications/' + id, data);
+  toast('Modifications enregistrees');
+  // Reload the card
+  const body = document.getElementById('app-body-' + id);
+  body.dataset.loaded = '';
+  loadAppDetail(id, body);
+  loadStats();
+  loadFilterOptions();
+}
+
+function renderDocsPanel(appId, docs) {
+  let html = '';
+  if (docs.length) {
+    docs.forEach(d => {
+      html += '<div class="flex gap-8 mb-8" style="align-items:center;">' +
+        '<span class="text-sm">[' + esc(d.doc_type || 'file') + '] ' + esc(d.filename) + '</span>' +
+        '<button class="btn btn-sm" onclick="downloadDoc(' + d.id + ')">[dl]</button>' +
+        '<button class="btn btn-sm btn-danger" onclick="deleteDoc(' + d.id + ',' + appId + ')">[x]</button>' +
+      '</div>';
+    });
+  } else {
+    html += '<div class="text-sm text-muted mb-8">Aucun document.</div>';
+  }
+  html += '<hr class="divider">';
+  html += '<div class="form-group"><label>Ajouter des documents</label>' +
+    '<input type="file" id="doc-upload-' + appId + '" multiple style="font-family:\'JetBrains Mono\',monospace;font-size:12px;"></div>';
+  html += '<button class="btn btn-sm" onclick="uploadDocs(' + appId + ')">[save] Enregistrer documents</button>';
+  return html;
+}
+
+async function downloadDoc(docId) {
+  window.open('api/documents/' + docId + '/download', '_blank');
+}
+
+async function deleteDoc(docId, appId) {
+  await del('api/documents/' + docId);
+  toast('Document supprime');
+  const body = document.getElementById('app-body-' + appId);
+  body.dataset.loaded = '';
+  loadAppDetail(appId, body);
+}
+
+async function uploadDocs(appId) {
+  const input = document.getElementById('doc-upload-' + appId);
+  if (!input.files.length) { toast('Selectionne des fichiers.'); return; }
+  for (const f of input.files) {
+    const fd = new FormData();
+    fd.append('file', f);
+    await api('api/applications/' + appId + '/documents', { method: 'POST', body: fd });
+  }
+  toast('Documents enregistres');
+  const body = document.getElementById('app-body-' + appId);
+  body.dataset.loaded = '';
+  loadAppDetail(appId, body);
+}
+
+function switchDetailTab(btn, panelId) {
+  const parent = btn.closest('.app-card-body') || btn.closest('.tab-content');
+  parent.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+async function changeStatus(id) {
+  const status = document.getElementById('status-sel-' + id).value;
+  await put('api/applications/' + id + '/status', { status });
+  toast('Statut mis a jour');
+  // Reload
+  const body = document.getElementById('app-body-' + id);
+  body.dataset.loaded = '';
+  loadAppDetail(id, body);
+  loadStats();
+  // Update card header color
+  const card = document.getElementById('app-' + id);
+  card.className = 'app-card open ' + statusClass(status);
+}
+
+function confirmDeleteApp(id) {
+  document.getElementById('confirm-msg').textContent = 'Supprimer la candidature #' + id + ' ? Irreversible.';
+  document.getElementById('confirm-yes-btn').onclick = async () => {
+    await del('api/applications/' + id);
+    closeModal('modal-confirm');
+    toast('Candidature supprimee');
+    loadApplications();
+    loadStats();
+    loadFilterOptions();
+  };
+  showModal('modal-confirm');
+}
+
+async function syncEmails() {
+  const btn = document.getElementById('sync-btn');
+  btn.disabled = true;
+  btn.textContent = '[sync] Sync en cours...';
+  const resEl = document.getElementById('sync-result');
+  try {
+    const r = await post('api/sync-emails', {});
+    resEl.className = 'info-box info-box-success mb-16';
+    resEl.textContent = 'Fetched: ' + r.fetched + ' | Matched: ' + r.matched + ' | Skipped: ' + r.skipped;
+    loadApplications();
+    loadStats();
+  } catch (e) {
+    resEl.className = 'info-box info-box-error mb-16';
+    resEl.textContent = 'Erreur: ' + (e.error || e.message || 'echec');
+  }
+  btn.disabled = false;
+  btn.textContent = '[sync] Gmail';
+}
+
+async function markGhosted() {
+  const btn = document.getElementById('ghost-btn');
+  btn.disabled = true;
+  try {
+    const r = await post('api/ghosted', {});
+    if (r.count) {
+      toast(r.count + ' candidature(s) marquee(s) ghosted');
+      loadApplications();
+      loadStats();
+    } else {
+      toast('Aucune candidature a marquer');
+    }
+  } catch (e) {
+    toast('Erreur');
+  }
+  btn.disabled = false;
+}
+
+function exportCSV() {
+  window.open('api/export', '_blank');
+}
+
+// ═══════════════════════ CONTACTS TAB ═══════════════════════
+
+async function loadContactFilterOptions() {
+  const opts = await json('api/contacts/filter-options');
+  fillSelect('contact-filter-company', opts.companies);
+  fillSelect('contact-filter-function', opts.functions);
+}
+
+async function loadContacts() {
+  const params = new URLSearchParams();
+  const n = document.getElementById('contact-search').value;
+  const c = document.getElementById('contact-filter-company').value;
+  const f = document.getElementById('contact-filter-function').value;
+  if (n) params.set('name', n);
+  if (c) params.set('company', c);
+  if (f) params.set('function', f);
+
+  const contacts = await json('api/contacts?' + params);
+  const el = document.getElementById('contacts-list');
+
+  if (!contacts.length) {
+    el.innerHTML = '<div class="info-box info-box-info">Aucun contact.</div>';
+    return;
+  }
+
+  el.innerHTML = contacts.map(c => {
+    const name = ((c.first_name || '') + ' ' + (c.last_name || '')).trim() || 'N/A';
+    return '<div class="contact-card" onclick="viewContact(' + c.id + ')">' +
+      '<div style="font-weight:700;">' + esc(name) + '</div>' +
+      '<div class="text-muted text-sm">' + esc(c.function || 'N/A') + '</div>' +
+      '<div class="text-muted text-sm">' + esc(c.company || 'N/A') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function showAddContactModal() {
+  ['new-contact-first','new-contact-last','new-contact-function','new-contact-company','new-contact-email','new-contact-phone'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  showModal('modal-add-contact');
+}
+
+async function saveNewContact() {
+  const first = document.getElementById('new-contact-first').value.trim();
+  const last = document.getElementById('new-contact-last').value.trim();
+  if (!first && !last) { toast('Renseigne au moins un nom ou un prenom.'); return; }
+  await post('api/contacts', {
+    first_name: first || null,
+    last_name: last || null,
+    function: document.getElementById('new-contact-function').value.trim() || null,
+    company: document.getElementById('new-contact-company').value.trim() || null,
+    email: document.getElementById('new-contact-email').value.trim() || null,
+    phone: document.getElementById('new-contact-phone').value.trim() || null,
+  });
+  closeModal('modal-add-contact');
+  toast('Contact ajoute');
+  loadContacts();
+  loadContactFilterOptions();
+}
+
+async function viewContact(id) {
+  const c = await json('api/contacts/' + id);
+  const name = ((c.first_name || '') + ' ' + (c.last_name || '')).trim() || 'N/A';
+  let html = '<h3>' + esc(name) + '</h3>';
+  html += '<div class="card">' +
+    '<div class="card-row"><span class="card-label">Nom complet:</span><span>' + esc(name) + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Fonction:</span><span>' + esc(c.function || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Entreprise:</span><span>' + esc(c.company || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Email:</span><span>' + esc(c.email || 'N/A') + '</span></div>' +
+    '<div class="card-row"><span class="card-label">Telephone:</span><span>' + esc(c.phone || 'N/A') + '</span></div>' +
+  '</div>';
+  html += '<hr class="divider">';
+  html += '<div class="form-group"><label>Notes</label><textarea id="contact-notes-' + id + '" rows="5">' + esc(c.notes || '') + '</textarea></div>';
+  html += '<button class="btn btn-sm" onclick="saveContactNotes(' + id + ')">[save] Enregistrer la note</button>';
+  html += '<hr class="divider">';
+  html += '<button class="btn btn-sm btn-danger" onclick="confirmDeleteContact(' + id + ')">[x] Supprimer le contact</button>';
+
+  document.getElementById('view-contact-content').innerHTML = html;
+  showModal('modal-view-contact');
+}
+
+async function saveContactNotes(id) {
+  const notes = document.getElementById('contact-notes-' + id).value;
+  await put('api/contacts/' + id + '/notes', { notes });
+  toast('Note enregistree');
+}
+
+function confirmDeleteContact(id) {
+  closeModal('modal-view-contact');
+  document.getElementById('confirm-msg').textContent = 'Supprimer ce contact ? Irreversible.';
+  document.getElementById('confirm-yes-btn').onclick = async () => {
+    await del('api/contacts/' + id);
+    closeModal('modal-confirm');
+    toast('Contact supprime');
+    loadContacts();
+    loadContactFilterOptions();
+  };
+  showModal('modal-confirm');
+}
+
+// ═══════════════════════ CONFIG TAB ═══════════════════════
+
+let gmailRowCount = 0;
+
+async function loadConfig() {
+  const cfg = await json('api/config');
+  document.getElementById('cfg-api-key').value = cfg.openrouter_api_key || '';
+  document.getElementById('cfg-model').value = cfg.openrouter_model || 'google/gemini-2.5-flash';
+
+  const accounts = cfg.gmail_accounts || [];
+  gmailRowCount = 0;
+  document.getElementById('gmail-accounts').innerHTML = '';
+  if (accounts.length) {
+    accounts.forEach(a => addGmailRow(a.address, a.app_password));
+  } else {
+    addGmailRow();
+  }
+}
+
+function addGmailRow(addr, pwd) {
+  const i = gmailRowCount++;
+  const el = document.getElementById('gmail-accounts');
+  const row = document.createElement('div');
+  row.className = 'form-row mb-8';
+  row.id = 'gmail-row-' + i;
+  row.innerHTML = '<div class="form-group"><label>Address ' + (i + 1) + '</label><input type="text" id="gmail-addr-' + i + '" value="' + esc(addr || '') + '"></div>' +
+    '<div class="form-group"><label>App password ' + (i + 1) + '</label><input type="password" id="gmail-pwd-' + i + '" value="' + esc(pwd || '') + '"></div>' +
+    '<div style="padding-top:22px;"><button class="btn btn-sm btn-danger" onclick="removeGmailRow(' + i + ')">[x]</button></div>';
+  el.appendChild(row);
+}
+
+function removeGmailRow(i) {
+  const row = document.getElementById('gmail-row-' + i);
+  if (row) row.remove();
+}
+
+async function saveConfig() {
+  const accounts = [];
+  document.querySelectorAll('#gmail-accounts .form-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const addr = inputs[0]?.value?.trim();
+    const pwd = inputs[1]?.value?.trim();
+    if (addr) accounts.push({ address: addr, app_password: pwd || '' });
+  });
+
+  await post('api/config', {
+    openrouter_api_key: document.getElementById('cfg-api-key').value.trim(),
+    openrouter_model: document.getElementById('cfg-model').value.trim() || 'google/gemini-2.5-flash',
+    gmail_accounts: accounts,
+  });
+
+  document.getElementById('config-msg').innerHTML = '<div class="info-box info-box-success">[ok] Config saved — restart to apply</div>';
+  setTimeout(() => document.getElementById('config-msg').innerHTML = '', 4000);
+}
+
+// ── Custom Selects ──
+function upgradeSelects(root) {
+  (root || document).querySelectorAll('select:not([data-csel])').forEach(sel => {
+    sel.setAttribute('data-csel', '1');
+    const wrap = document.createElement('div');
+    wrap.className = 'csel';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'csel-trigger';
+    const arrow = document.createElement('span');
+    arrow.className = 'csel-arrow';
+    arrow.textContent = '▾';
+
+    const dd = document.createElement('div');
+    dd.className = 'csel-dropdown';
+
+    function render() {
+      const txt = sel.options[sel.selectedIndex]?.text || '';
+      trigger.textContent = '';
+      trigger.appendChild(document.createTextNode(txt));
+      trigger.appendChild(arrow);
+      dd.innerHTML = '';
+      Array.from(sel.options).forEach((opt, i) => {
+        const d = document.createElement('div');
+        d.className = 'csel-opt' + (i === sel.selectedIndex ? ' active' : '');
+        d.textContent = opt.text;
+        d.addEventListener('click', e => {
+          e.stopPropagation();
+          sel.selectedIndex = i;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          wrap.classList.remove('open');
+          render();
+        });
+        dd.appendChild(d);
+      });
+    }
+
+    trigger.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.csel.open').forEach(s => { if (s !== wrap) s.classList.remove('open'); });
+      wrap.classList.toggle('open');
+      if (wrap.classList.contains('open')) {
+        const activeOpt = dd.querySelector('.active');
+        if (activeOpt) activeOpt.scrollIntoView({ block: 'nearest' });
+      }
+    });
+
+    wrap.insertBefore(trigger, sel);
+    wrap.appendChild(dd);
+    render();
+
+    new MutationObserver(render).observe(sel, { childList: true, attributes: true });
+  });
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.csel.open').forEach(s => s.classList.remove('open'));
+});
+
+new MutationObserver(() => upgradeSelects()).observe(document.body, { childList: true, subtree: true });
+upgradeSelects();
+
+// ── Close modals on overlay click ──
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('visible');
+  });
+});
+
+// ── File upload preview ──
+document.getElementById('confirm-docs').addEventListener('change', function() {
+  const el = document.getElementById('confirm-docs-list');
+  if (this.files.length) {
+    el.innerHTML = Array.from(this.files).map(f =>
+      '[file] ' + esc(f.name) + ' (' + Math.round(f.size / 1024) + ' KB)'
+    ).join('<br>');
+  } else {
+    el.innerHTML = '';
+  }
+});
+</script>
+
+</body>
+</html>

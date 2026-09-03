@@ -2,7 +2,7 @@ name: Calendar
 slug: calendar
 description: Events, reminders, deadlines
 icon: "[>]"
-type: streamlit
+type: flask
 entry: app.py
 default: true
 volumes:

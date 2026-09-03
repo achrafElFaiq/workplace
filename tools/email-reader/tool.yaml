@@ -2,7 +2,7 @@ name: Email Reader
 slug: email-reader
 description: Smart inbox
 icon: "[>]"
-type: streamlit
+type: flask
 entry: app.py
 default: true
 volumes:

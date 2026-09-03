@@ -2,7 +2,7 @@ name: Job Tracker
 slug: job-tracker
 description: Automatic job application tracking
 icon: "[>]"
-type: streamlit
+type: flask
 entry: app.py
 volumes:
   - config.yaml:/app/config.yaml

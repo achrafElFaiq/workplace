@@ -1,0 +1,9 @@
+name: Budget
+slug: budget
+description: Zero-based budget & net worth tracker
+icon: "[=]"
+type: flask
+entry: app.py
+default: false
+volumes:
+  - data:/app/data

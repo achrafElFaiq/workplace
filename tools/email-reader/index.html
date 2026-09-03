@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email Reader</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #fafaf5;
+  --bg-secondary: #f0f0e8;
+  --primary: #2d6a4f;
+  --primary-hover: #1b4332;
+  --text: #1a1a1a;
+  --text-muted: #888888;
+  --border: #d4d4c8;
+  --border-light: #eeeeee;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--primary); font-weight: 700; border-bottom-color: var(--primary); }
+
+.tab-content { display: none; padding: 24px; }
+.tab-content.active { display: block; }
+
+/* ── Buttons ── */
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--primary); color: var(--bg); }
+.btn-primary { background: var(--primary); color: var(--bg); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-sm { padding: 3px 10px; font-size: 12px; }
+.btn-danger { border-color: #b3413e; color: #b3413e; }
+.btn-danger:hover { background: #b3413e; color: #fff; }
+.btn-row { display: flex; gap: 8px; align-items: center; }
+.btn-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+.btn-link:hover { text-decoration: underline; }
+
+/* ── Inputs ── */
+input[type="text"], input[type="password"], textarea {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus { border-color: var(--primary); border-style: solid; }
+select { display: none; }
+
+/* ── Custom Select ── */
+.csel {
+  position: relative;
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+.csel-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  line-height: 1.5;
+}
+.csel.open .csel-trigger,
+.csel-trigger:focus {
+  border-color: var(--primary);
+  border-style: solid;
+  outline: none;
+}
+.csel-arrow { color: var(--text-muted); font-size: 10px; margin-left: 8px; flex-shrink: 0; }
+.csel-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+}
+.csel.open .csel-dropdown { display: block; }
+.csel-opt {
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.csel-opt:hover { background: var(--bg-secondary); }
+.csel-opt.active { color: var(--primary); font-weight: 700; }
+
+/* ── Stat Bar ── */
+.stat-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.stat-val { color: var(--primary); font-weight: 700; }
+
+/* ── Filter Row ── */
+.filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.filter-row > * { min-width: 150px; }
+.filter-row .checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-width: auto;
+}
+.filter-row .checkbox-wrap input { width: auto; }
+
+/* ── Email Card ── */
+.email-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: var(--bg);
+  transition: border-color 0.15s;
+}
+.email-card:hover { border-color: var(--primary); }
+.email-card.unread { border-left: 3px solid var(--primary); }
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+.from-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.received { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.card-subject { font-size: 13px; color: #333; margin-bottom: 5px; }
+.card-summary { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.4; }
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-light);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.cat-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 500;
+  color: #fafaf5;
+}
+.card-actions { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.card-body-preview {
+  display: none;
+  padding: 10px 0 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-top: 1px dashed var(--border-light);
+  margin-top: 8px;
+}
+.card-body-preview.visible { display: block; }
+
+/* ── Digest ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 0 8px;
+}
+.section-label { font-size: 13px; font-weight: 700; }
+.section-count { font-size: 11px; color: var(--text-muted); }
+
+.digest-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+.digest-card.urgent { border-left: 3px solid #c0392b; }
+
+.bullet-row {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-light);
+  align-items: flex-start;
+}
+.bullet-row:last-child { border-bottom: none; }
+.bullet-time { color: var(--text-muted); font-size: 11px; white-space: nowrap; min-width: 70px; padding-top: 1px; }
+.bullet-content { flex: 1; min-width: 0; }
+.bullet-sender { font-weight: 700; font-size: 12px; }
+.bullet-subject { color: #555; font-size: 12px; }
+.bullet-summary { font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+
+/* ── Sync Tab ── */
+.sync-status {
+  font-size: 12px;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+.sync-status .addr { color: #666; }
+.sync-status .date { color: var(--primary); }
+
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.sync-row p { flex: 1; color: #666; font-size: 13px; }
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+.metric {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+.metric-label { font-size: 12px; color: var(--text-muted); }
+.metric-value { font-size: 24px; color: var(--primary); font-weight: 700; }
+
+.blocked-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.blocked-item:last-child { border-bottom: none; }
+
+/* ── Config ── */
+.form-group { margin-bottom: 12px; }
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+.form-row { display: flex; gap: 16px; }
+.form-row > * { flex: 1; }
+
+.account-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+.account-row > .form-group { flex: 1; margin-bottom: 0; }
+
+/* ── Force Sync Panel ── */
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--bg);
+}
+.panel-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.panel-body { display: none; }
+.panel-body.visible { display: block; }
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--primary);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; }
+.toast.error { background: #b3413e; }
+
+/* ── Util ── */
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--primary); }
+.text-sm { font-size: 12px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.hidden { display: none; }
+
+.empty-msg {
+  padding: 32px 0;
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('digest')">[digest]</button>
+  <button class="tab-btn" onclick="switchTab('inbox')">[inbox]</button>
+  <button class="tab-btn" onclick="switchTab('sync')">[sync]</button>
+  <button class="tab-btn" onclick="switchTab('config')">[config]</button>
+</div>
+
+<!-- ═══════════════════════ DIGEST ═══════════════════════ -->
+<div id="tab-digest" class="tab-content active">
+  <div id="digest-stats"></div>
+  <div id="digest-body"></div>
+</div>
+
+<!-- ═══════════════════════ INBOX ═══════════════════════ -->
+<div id="tab-inbox" class="tab-content">
+  <div id="inbox-stats"></div>
+  <div id="inbox-filters"></div>
+  <div id="inbox-actions" class="mb-8"></div>
+  <div id="inbox-list"></div>
+</div>
+
+<!-- ═══════════════════════ SYNC ═══════════════════════ -->
+<div id="tab-sync" class="tab-content">
+  <h2 class="text-primary mb-16" style="font-size:24px;">[sync] Email Inbox</h2>
+  <div id="sync-status" class="sync-status"></div>
+  <div id="sync-controls"></div>
+  <hr class="divider">
+  <h3 class="text-primary mb-8" style="font-size:18px;">Last Sync</h3>
+  <div id="sync-last"></div>
+  <hr class="divider">
+  <h3 class="text-primary mb-8" style="font-size:18px;">Blocked Senders</h3>
+  <div id="blocked-list"></div>
+</div>
+
+<!-- ═══════════════════════ CONFIG ═══════════════════════ -->
+<div id="tab-config" class="tab-content">
+  <h2 class="text-primary mb-16" style="font-size:24px;">[config]</h2>
+  <div id="config-body"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const CAT_COLORS = {
+  action: '#c0392b',
+  finance: '#2471a3',
+  personal: '#1e8449',
+  alert: '#b7950b',
+  update: '#7d3c98',
+};
+const CAT_LABELS = {
+  action: '[action]',
+  finance: '[finance]',
+  personal: '[personal]',
+  alert: '[alert]',
+  update: '[update]',
+};
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function toast(m, err) {
+  const t = document.getElementById('toast');
+  t.textContent = m;
+  t.className = 'toast visible' + (err ? ' error' : '');
+  setTimeout(() => t.classList.remove('visible'), 2500);
+}
+function json(u) { return fetch(u).then(r => r.json()); }
+function post(u, d) { return fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d || {}) }).then(r => r.json()); }
+function del(u, d) { return fetch(u, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d || {}) }).then(r => r.json()); }
+
+// ── Tabs ──
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const idx = { digest: 0, inbox: 1, sync: 2, config: 3 }[name];
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if (name === 'digest') loadDigest();
+  if (name === 'inbox') loadInbox();
+  if (name === 'sync') loadSync();
+  if (name === 'config') loadConfig();
+}
+
+// ── Date formatting ──
+function fmtDate(received) {
+  if (!received) return '';
+  try {
+    const dt = new Date(received.replace(' ', 'T'));
+    const now = new Date();
+    if (dt.toDateString() === now.toDateString()) return dt.toTimeString().substring(0, 5);
+    if (dt.getFullYear() === now.getFullYear()) {
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return received.substring(0, 10);
+  } catch (e) { return received.substring(0, 10); }
+}
+
+function relDate(received) {
+  if (!received) return '';
+  try {
+    const dt = new Date(received.replace(' ', 'T'));
+    const now = new Date();
+    if (dt.toDateString() === now.toDateString()) return 'today ' + dt.toTimeString().substring(0, 5);
+    const diff = Math.floor((now - dt) / 86400000);
+    if (diff === 1) return 'yesterday';
+    return diff + 'd ago';
+  } catch (e) { return ''; }
+}
+
+// ════════════════════════════════════════════════════════════
+// DIGEST
+// ════════════════════════════════════════════════════════════
+async function loadDigest() {
+  const emails = await json('api/emails?limit=500');
+  const now = new Date();
+  const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+  const todayStr = now.toISOString().substring(0, 10);
+
+  const recent = emails.filter(e => e.received_at >= weekAgo.toISOString().substring(0, 10));
+  const todayEmails = recent.filter(e => (e.received_at || '').substring(0, 10) === todayStr);
+  const urgent = recent.filter(e => e.category === 'action' || e.category === 'alert');
+  const finance = recent.filter(e => e.category === 'finance');
+  const personal = recent.filter(e => e.category === 'personal');
+  const updates = recent.filter(e => e.category === 'update');
+  const unread = recent.filter(e => !e.is_read).length;
+
+  // Stats
+  const urgentPart = urgent.length
+    ? ' | <span style="color:#c0392b;font-weight:700;">[!] ' + urgent.length + ' need attention</span>'
+    : ' | <span style="color:var(--primary);">[ok] nothing urgent</span>';
+
+  document.getElementById('digest-stats').innerHTML =
+    '<div class="stat-bar">' +
+    '<span>this week: <span class="stat-val">' + recent.length + '</span></span>' +
+    '<span>unread: <span class="stat-val">' + unread + '</span></span>' +
+    '<span>today: <span class="stat-val">' + todayEmails.length + '</span></span>' +
+    urgentPart + '</div>';
+
+  let html = '';
+
+  // Urgent
+  if (urgent.length) {
+    html += sectionHeader('[!] needs attention', '#c0392b', urgent.length);
+    urgent.forEach(e => { html += urgentCard(e); });
+  } else {
+    html += '<div style="color:var(--primary);padding:8px 0 4px;">[ok] inbox clear — no actions or alerts this week</div>';
+  }
+
+  if (finance.length) {
+    html += sectionHeader('[finance]', CAT_COLORS.finance, finance.length);
+    html += '<div>' + finance.map(bulletRow).join('') + '</div>';
+  }
+  if (personal.length) {
+    html += sectionHeader('[personal]', CAT_COLORS.personal, personal.length);
+    html += '<div>' + personal.map(bulletRow).join('') + '</div>';
+  }
+  if (updates.length) {
+    html += sectionHeader('[updates]', CAT_COLORS.update, updates.length);
+    html += '<div>' + updates.map(bulletRow).join('') + '</div>';
+  }
+
+  if (!finance.length && !personal.length && !updates.length && !urgent.length) {
+    html += '<div class="text-muted text-sm" style="padding:12px 0;">no categorised emails this week</div>';
+  }
+
+  document.getElementById('digest-body').innerHTML = html;
+}
+
+function sectionHeader(label, color, count) {
+  return '<div class="section-header">' +
+    '<span class="section-label" style="color:' + color + ';">' + esc(label) + '</span>' +
+    '<span class="section-count">(' + count + ')</span></div>';
+}
+
+function urgentCard(e) {
+  const color = CAT_COLORS[e.category] || '#c0392b';
+  const label = CAT_LABELS[e.category] || '[' + e.category + ']';
+  const from = esc(e.from_name || e.from_address);
+  const rel = relDate(e.received_at);
+  const unread = !e.is_read ? 'border-left:3px solid #c0392b;' : '';
+
+  return '<div class="digest-card' + (!e.is_read ? ' urgent' : '') + '">' +
+    '<div class="card-top"><span class="from-name">' + from + '</span><span class="received">' + rel + '</span></div>' +
+    '<div class="card-subject">' + esc(e.subject) + '</div>' +
+    (e.summary ? '<div class="card-summary">' + esc(e.summary) + '</div>' : '') +
+    '<div class="card-footer">' +
+      '<span class="cat-badge" style="background:' + color + ';">' + label + '</span>' +
+      '<a class="btn-link" href="' + esc(e.gmail_link) + '" target="_blank" style="margin-left:auto;">[open in gmail]</a>' +
+    '</div></div>';
+}
+
+function bulletRow(e) {
+  const from = esc(e.from_name || e.from_address);
+  const rel = relDate(e.received_at);
+  return '<div class="bullet-row">' +
+    '<span class="bullet-time">' + rel + '</span>' +
+    '<div class="bullet-content">' +
+      '<span class="bullet-sender">' + from + '</span>' +
+      '<span class="bullet-subject"> — ' + esc(e.subject) + '</span>' +
+      (e.summary ? '<div class="bullet-summary">' + esc(e.summary) + '</div>' : '') +
+    '</div>' +
+    '<a class="btn-link" href="' + esc(e.gmail_link) + '" target="_blank">[open]</a>' +
+  '</div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// INBOX
+// ════════════════════════════════════════════════════════════
+let inboxCategory = 'all';
+let inboxAccount = 'all';
+let inboxUnread = false;
+let accounts = [];
+
+async function loadInbox() {
+  const [stats, accs] = await Promise.all([json('api/stats'), json('api/accounts')]);
+  accounts = accs;
+
+  // Stats bar
+  const byCat = stats.by_category || {};
+  let catParts = Object.entries(byCat).map(([k, v]) =>
+    '<span>' + (CAT_LABELS[k] || k) + ': <span class="stat-val">' + v + '</span></span>'
+  ).join(' | ');
+
+  document.getElementById('inbox-stats').innerHTML =
+    '<div class="stat-bar">' +
+    '<span>total: <span class="stat-val">' + stats.total + '</span></span>' +
+    '<span>unread: <span class="stat-val">' + stats.unread + '</span></span>' +
+    '<span>today: <span class="stat-val">' + stats.today + '</span></span>' +
+    (catParts ? ' | ' + catParts : '') + '</div>';
+
+  // Filters
+  const catOpts = ['all', 'action', 'finance', 'personal', 'alert', 'update'];
+  const catLabels = { all: '[all categories]', ...CAT_LABELS };
+  const accOpts = ['all', ...accs.map(a => a.name)];
+  const accLabels = { all: '[all accounts]' };
+  accs.forEach(a => { accLabels[a.name] = a.address; });
+
+  document.getElementById('inbox-filters').innerHTML =
+    '<div class="filter-row">' +
+      '<select id="filter-cat">' + catOpts.map(o => '<option value="' + o + '"' + (o === inboxCategory ? ' selected' : '') + '>' + esc(catLabels[o] || o) + '</option>').join('') + '</select>' +
+      '<select id="filter-acc">' + accOpts.map(o => '<option value="' + o + '"' + (o === inboxAccount ? ' selected' : '') + '>' + esc(accLabels[o] || o) + '</option>').join('') + '</select>' +
+      '<label class="checkbox-wrap"><input type="checkbox" id="filter-unread"' + (inboxUnread ? ' checked' : '') + '> unread only</label>' +
+    '</div>';
+
+  document.getElementById('filter-cat').addEventListener('change', e => { inboxCategory = e.target.value; fetchEmails(); });
+  document.getElementById('filter-acc').addEventListener('change', e => { inboxAccount = e.target.value; fetchEmails(); });
+  document.getElementById('filter-unread').addEventListener('change', e => { inboxUnread = e.target.checked; fetchEmails(); });
+
+  // Mark all read
+  if (stats.unread > 0) {
+    document.getElementById('inbox-actions').innerHTML =
+      '<button class="btn btn-sm" onclick="markAllRead()">[mark all read] (' + stats.unread + ')</button>';
+  } else {
+    document.getElementById('inbox-actions').innerHTML = '';
+  }
+
+  fetchEmails();
+}
+
+async function fetchEmails() {
+  let url = 'api/emails?';
+  if (inboxCategory !== 'all') url += 'category=' + inboxCategory + '&';
+  if (inboxAccount !== 'all') url += 'account=' + inboxAccount + '&';
+  if (inboxUnread) url += 'unread_only=1&';
+
+  const emails = await json(url);
+  const el = document.getElementById('inbox-list');
+
+  if (!emails.length) {
+    el.innerHTML = '<div class="empty-msg">inbox empty — run [sync] to fetch emails</div>';
+    return;
+  }
+
+  el.innerHTML = emails.map(emailCard).join('');
+
+  // Mark visible unread as read
+  const unreadIds = emails.filter(e => !e.is_read).map(e => e.id);
+  unreadIds.forEach(id => fetch('api/emails/' + id + '/read', { method: 'POST' }));
+}
+
+function emailCard(e) {
+  const color = CAT_COLORS[e.category] || '#888';
+  const label = CAT_LABELS[e.category] || '[' + (e.category || 'unknown') + ']';
+  const from = esc(e.from_name || e.from_address);
+  const date = fmtDate(e.received_at);
+  const hasBody = !!(e.body_preview && e.body_preview.trim());
+
+  return '<div class="email-card' + (!e.is_read ? ' unread' : '') + '" id="card-' + e.id + '">' +
+    '<div class="card-top"><span class="from-name">' + from + '</span><span class="received">' + date + '</span></div>' +
+    '<div class="card-subject">' + esc(e.subject) + '</div>' +
+    (e.summary ? '<div class="card-summary">' + esc(e.summary) + '</div>' : '') +
+    '<div class="card-footer">' +
+      '<span class="cat-badge" style="background:' + color + ';">' + label + '</span>' +
+      '<div class="card-actions">' +
+        (hasBody ? '<button class="btn-link" onclick="toggleBody(' + e.id + ')">[body]</button>' : '') +
+        '<a class="btn-link" href="' + esc(e.gmail_link) + '" target="_blank">[open in gmail]</a>' +
+        '<button class="btn-link" style="color:#999;" onclick="dismissEmail(' + e.id + ')">[read]</button>' +
+        '<button class="btn-link" style="color:#c0392b;opacity:0.65;" onclick="flagSender(' + e.id + ',\'' + esc(e.from_address).replace(/'/g, "\\'") + '\')">[flag]</button>' +
+      '</div>' +
+    '</div>' +
+    (hasBody ? '<div class="card-body-preview" id="body-' + e.id + '">' + esc(e.body_preview) + '</div>' : '') +
+  '</div>';
+}
+
+function toggleBody(id) {
+  const el = document.getElementById('body-' + id);
+  if (el) el.classList.toggle('visible');
+}
+
+async function dismissEmail(id) {
+  await fetch('api/emails/' + id, { method: 'DELETE' });
+  const card = document.getElementById('card-' + id);
+  if (card) card.remove();
+  toast('[ok] Email removed.');
+}
+
+async function flagSender(id, address) {
+  await post('api/emails/flag-sender', { address });
+  toast('[ok] Sender flagged — emails removed.');
+  loadInbox();
+}
+
+async function markAllRead() {
+  await post('api/emails/read-all');
+  toast('[ok] All marked read.');
+  loadInbox();
+}
+
+// ════════════════════════════════════════════════════════════
+// SYNC
+// ════════════════════════════════════════════════════════════
+async function loadSync() {
+  const [status, last, blocked] = await Promise.all([
+    json('api/sync/status'), json('api/sync/last'), json('api/blocked')
+  ]);
+
+  // Status
+  const statusEl = document.getElementById('sync-status');
+  const entries = Object.values(status);
+  if (entries.length) {
+    statusEl.innerHTML = 'last checked — ' + entries.map(a =>
+      '<span class="addr">' + esc(a.address) + '</span>: <span class="date">' + (a.last_check || 'never') + '</span>'
+    ).join(' | ');
+  } else {
+    statusEl.innerHTML = 'last checked — <span class="text-muted">never (will fetch last 3 days)</span>';
+  }
+
+  // Controls
+  document.getElementById('sync-controls').innerHTML =
+    '<div class="sync-row">' +
+      '<p>Fetch emails since last sync, filter noise, save what matters.</p>' +
+      '<button class="btn btn-primary" id="btn-sync" onclick="runSync()">[sync] run now</button>' +
+    '</div>' +
+    '<div class="panel">' +
+      '<div class="panel-header" onclick="this.nextElementSibling.classList.toggle(\'visible\')">[>] force resync — fetch further back</div>' +
+      '<div class="panel-body">' +
+        '<p class="text-sm text-muted mb-8">Overrides last_check — use to recover missed emails.</p>' +
+        '<div class="btn-row">' +
+          '<select id="force-days"><option>3</option><option>7</option><option>14</option><option>30</option></select>' +
+          '<button class="btn btn-sm" onclick="runSync(true)">[force]</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  // Last sync
+  const lastEl = document.getElementById('sync-last');
+  if (!last) {
+    lastEl.innerHTML = '<p class="text-muted">no syncs yet</p>';
+  } else {
+    const stats = last.stats || {};
+    let ts = last.timestamp || '';
+    if (ts.length === 15) {
+      ts = ts.substring(0, 4) + '-' + ts.substring(4, 6) + '-' + ts.substring(6, 8) + ' ' + ts.substring(9, 11) + ':' + ts.substring(11, 13) + ':' + ts.substring(13, 15);
+    }
+    lastEl.innerHTML =
+      '<p class="text-sm text-muted mb-8">run at ' + esc(ts) + '</p>' +
+      '<div class="metrics-row">' +
+        metric('fetched', stats.fetched || 0) +
+        metric('saved', stats.saved || 0) +
+        metric('ignored', stats.ignored_domain || 0) +
+        metric('not important', stats.skipped_not_important || 0) +
+      '</div>';
+  }
+
+  // Blocked
+  const blockedEl = document.getElementById('blocked-list');
+  if (!blocked.length) {
+    blockedEl.innerHTML = '<p class="text-muted text-sm">no blocked senders yet — flag emails in [inbox] to block a sender</p>';
+  } else {
+    blockedEl.innerHTML = blocked.map(b =>
+      '<div class="blocked-item">' +
+        '<span style="flex:1;">' + esc(b.address) + '</span>' +
+        '<span class="text-sm text-muted">blocked ' + (b.blocked_at || '').substring(0, 10) + '</span>' +
+        '<button class="btn btn-sm btn-danger" onclick="unblock(\'' + esc(b.address).replace(/'/g, "\\'") + '\')">[unblock]</button>' +
+      '</div>'
+    ).join('');
+  }
+}
+
+function metric(label, value) {
+  return '<div class="metric"><div class="metric-label">' + label + '</div><div class="metric-value">' + value + '</div></div>';
+}
+
+async function runSync(force) {
+  const btn = document.getElementById('btn-sync');
+  if (btn) { btn.disabled = true; btn.textContent = '[...] syncing'; }
+
+  const body = {};
+  if (force) {
+    const sel = document.getElementById('force-days');
+    body.force_days = parseInt(sel ? sel.value : '3');
+  }
+
+  try {
+    const res = await post('api/sync', body);
+    if (res.ok) {
+      const s = res.stats;
+      toast('[ok] sync complete — fetched: ' + s.fetched + ' | saved: ' + s.saved);
+      loadSync();
+    } else {
+      toast('[x] sync failed: ' + (res.error || 'unknown'), true);
+    }
+  } catch (e) {
+    toast('[x] sync error: ' + e.message, true);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '[sync] run now'; }
+}
+
+async function unblock(address) {
+  await del('api/blocked', { address });
+  toast('[ok] unblocked ' + address);
+  loadSync();
+}
+
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+let configAccounts = [];
+
+async function loadConfig() {
+  const cfg = await json('api/config');
+  configAccounts = (cfg.gmail_accounts || []).map(a => ({ address: a.address, app_password: '' }));
+  if (!configAccounts.length) configAccounts.push({ address: '', app_password: '' });
+
+  renderConfig(cfg);
+}
+
+function renderConfig(cfg) {
+  let accHtml = configAccounts.map((a, i) =>
+    '<div class="account-row" id="acc-row-' + i + '">' +
+      '<div class="form-group"><label>Address ' + (i + 1) + '</label><input type="text" id="cfg-addr-' + i + '" value="' + esc(a.address) + '" placeholder="email@gmail.com"></div>' +
+      '<div class="form-group"><label>App password ' + (i + 1) + '</label><input type="password" id="cfg-pwd-' + i + '" value="' + esc(a.app_password) + '" placeholder="leave blank to keep current"></div>' +
+      (configAccounts.length > 1 ? '<button class="btn btn-sm btn-danger" onclick="removeAccount(' + i + ')" style="margin-bottom:0;">[x]</button>' : '') +
+    '</div>'
+  ).join('');
+
+  document.getElementById('config-body').innerHTML =
+    '<div class="form-row mb-16">' +
+      '<div class="form-group"><label>OpenRouter API Key</label><input type="password" id="cfg-api-key" placeholder="' + (cfg.has_api_key ? 'configured — leave blank to keep' : 'sk-or-...') + '"></div>' +
+      '<div class="form-group"><label>Model</label><input type="text" id="cfg-model" value="' + esc(cfg.openrouter_model) + '"></div>' +
+    '</div>' +
+    '<h3 class="text-primary mb-8" style="font-size:18px;">Gmail Accounts</h3>' +
+    '<p class="text-sm text-muted mb-8">Use Gmail app-specific passwords (not your main password).</p>' +
+    accHtml +
+    '<div class="btn-row mt-8">' +
+      '<button class="btn btn-sm" onclick="addAccount()">[+] Add account</button>' +
+    '</div>' +
+    '<hr class="divider">' +
+    '<button class="btn btn-primary" onclick="saveConfig()">[save] Save config</button>';
+}
+
+function addAccount() {
+  configAccounts.push({ address: '', app_password: '' });
+  loadConfig();
+}
+
+function removeAccount(i) {
+  collectAccountInputs();
+  configAccounts.splice(i, 1);
+  renderConfig({ has_api_key: false, openrouter_model: document.getElementById('cfg-model')?.value || '' });
+}
+
+function collectAccountInputs() {
+  configAccounts.forEach((a, i) => {
+    const addr = document.getElementById('cfg-addr-' + i);
+    const pwd = document.getElementById('cfg-pwd-' + i);
+    if (addr) a.address = addr.value.trim();
+    if (pwd) a.app_password = pwd.value.trim();
+  });
+}
+
+async function saveConfig() {
+  collectAccountInputs();
+  const data = {
+    openrouter_model: (document.getElementById('cfg-model')?.value || '').trim(),
+    gmail_accounts: configAccounts.filter(a => a.address).map(a => {
+      const entry = { address: a.address };
+      if (a.app_password) entry.app_password = a.app_password;
+      return entry;
+    }),
+  };
+  const apiKey = (document.getElementById('cfg-api-key')?.value || '').trim();
+  if (apiKey) data.openrouter_api_key = apiKey;
+
+  await post('api/config', data);
+  toast('[ok] Config saved — restart to apply');
+}
+
+// ── Custom Selects ──
+function upgradeSelects(root) {
+  (root || document).querySelectorAll('select:not([data-csel])').forEach(sel => {
+    sel.setAttribute('data-csel', '1');
+    const wrap = document.createElement('div');
+    wrap.className = 'csel';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'csel-trigger';
+    const arrow = document.createElement('span');
+    arrow.className = 'csel-arrow';
+    arrow.textContent = '▾';
+
+    const dd = document.createElement('div');
+    dd.className = 'csel-dropdown';
+
+    function render() {
+      const txt = sel.options[sel.selectedIndex]?.text || '';
+      trigger.textContent = '';
+      trigger.appendChild(document.createTextNode(txt));
+      trigger.appendChild(arrow);
+      dd.innerHTML = '';
+      Array.from(sel.options).forEach((opt, i) => {
+        const d = document.createElement('div');
+        d.className = 'csel-opt' + (i === sel.selectedIndex ? ' active' : '');
+        d.textContent = opt.text;
+        d.addEventListener('click', e => {
+          e.stopPropagation();
+          sel.selectedIndex = i;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          wrap.classList.remove('open');
+          render();
+        });
+        dd.appendChild(d);
+      });
+    }
+
+    trigger.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.csel.open').forEach(s => { if (s !== wrap) s.classList.remove('open'); });
+      wrap.classList.toggle('open');
+      if (wrap.classList.contains('open')) {
+        const activeOpt = dd.querySelector('.active');
+        if (activeOpt) activeOpt.scrollIntoView({ block: 'nearest' });
+      }
+    });
+
+    wrap.insertBefore(trigger, sel);
+    wrap.appendChild(dd);
+    render();
+
+    new MutationObserver(() => render()).observe(sel, { childList: true });
+  });
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.csel.open').forEach(s => s.classList.remove('open'));
+});
+
+new MutationObserver(() => upgradeSelects()).observe(document.body, { childList: true, subtree: true });
+
+// ── Boot ──
+loadDigest();
+</script>
+
+</body>
+</html>
