@@ -921,8 +921,11 @@ async function addFromUrl() {
     pendingLM = null;
     showConfirm();
   } catch (e) {
-    showAddStep('url');
-    toast('Erreur: ' + (e.error || e.message || 'echec'));
+    extractedData = { company: '?', position: '?', url: url, raw_text: '' };
+    pendingCV = null;
+    pendingLM = null;
+    toast('Erreur extraction — remplis manuellement.');
+    showConfirm();
   }
 }
 
@@ -950,8 +953,12 @@ async function addFromText() {
     pendingLM = null;
     showConfirm();
   } catch (e) {
-    showAddStep('text');
-    toast('Erreur: ' + (e.error || e.message || 'echec'));
+    const rawText = document.getElementById('add-text').value.trim();
+    extractedData = { company: '?', position: '?', url: url, raw_text: rawText };
+    pendingCV = null;
+    pendingLM = null;
+    toast('Erreur extraction — remplis manuellement.');
+    showConfirm();
   }
 }
 
