@@ -1,7 +1,12 @@
 import json
 import re
+import time
 from openai import OpenAI
 from config import OPENROUTER_BASE_URL, get_openrouter_api_key, get_openrouter_model
+from logger import get_logger
+
+log = get_logger("parser.extractor")
+
 
 EXTRACTION_PROMPT = """Tu es un parser d'offres d'emploi. Extrais les informations suivantes du texte fourni et retourne UNIQUEMENT un JSON valide, sans markdown, sans commentaire.
 
@@ -40,31 +45,69 @@ def _get_client() -> OpenAI:
     return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL)
 
 
-def _call_llm(text: str) -> dict:
+def _call_llm(text: str, attempt: int) -> dict:
+    model = get_openrouter_model()
+    api_key = get_openrouter_api_key()
+    key_preview = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "(empty/short)"
+
+    log.info(f"[attempt {attempt}] model={model} key={key_preview} input={len(text)} chars")
+
     client = _get_client()
-    response = client.chat.completions.create(
-        model=get_openrouter_model(),
-        messages=[
-            {"role": "system", "content": EXTRACTION_PROMPT},
-            {"role": "user", "content": text},
-        ],
-        temperature=0,
-    )
-    raw = response.choices[0].message.content
+    t0 = time.time()
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": EXTRACTION_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            temperature=0,
+        )
+    except Exception as e:
+        elapsed = time.time() - t0
+        log.error(f"[attempt {attempt}] API call failed after {elapsed:.1f}s — {type(e).__name__}: {e}")
+        raise
+
+    elapsed = time.time() - t0
+    raw = response.choices[0].message.content or ""
+    usage = response.usage
+    tokens_in = usage.prompt_tokens if usage else "?"
+    tokens_out = usage.completion_tokens if usage else "?"
+    finish = response.choices[0].finish_reason
+
+    log.info(f"[attempt {attempt}] response in {elapsed:.1f}s — {tokens_in} tok in, {tokens_out} tok out, finish={finish}, raw={len(raw)} chars")
+
     raw = raw.strip()
     raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
     raw = re.sub(r"```$", "", raw).strip()
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if match:
         raw = match.group(0)
-    return json.loads(raw)
+    else:
+        log.error(f"[attempt {attempt}] no JSON object found in response: {raw[:500]}")
+        raise ValueError(f"No JSON object in LLM response")
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        log.error(f"[attempt {attempt}] JSON parse failed: {e} — raw: {raw[:500]}")
+        raise
+
+    company = data.get("company") or "?"
+    position = data.get("position") or "?"
+    log.info(f"[attempt {attempt}] parsed OK — company={company}, position={position}")
+    return data
 
 
 def extract_job_data(text: str) -> dict | None:
     """Send raw job text to LLM and return structured data. Retries once on failure."""
-    for attempt in range(2):
+    log.info(f"--- extraction start — input {len(text)} chars ---")
+    for attempt in range(1, 3):
         try:
-            return _call_llm(text)
+            result = _call_llm(text, attempt)
+            log.info(f"--- extraction OK (attempt {attempt}) ---")
+            return result
         except Exception as e:
-            print(f"Extraction error (attempt {attempt + 1}): {e}")
+            log.error(f"[attempt {attempt}] failed — {type(e).__name__}: {e}")
+    log.error(f"--- extraction FAILED after 2 attempts ---")
     return None

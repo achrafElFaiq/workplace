@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime
 
 from openai import OpenAI
@@ -76,18 +77,34 @@ donnerons pas suite a votre candidature").
 Si un email ne correspond à aucune candidature, mets application_id à null.
 """
 
+    model = get_openrouter_model()
+    log.info(f"[llm] match batch — {len(emails)} emails, {len(active_apps)} apps, model={model}, prompt={len(prompt)} chars")
+    t0 = time.time()
     try:
         client = _get_client()
         response = client.chat.completions.create(
-            model=get_openrouter_model(),
+            model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
         )
-        raw = response.choices[0].message.content
+        elapsed = time.time() - t0
+        raw = response.choices[0].message.content or ""
+        usage = response.usage
+        tokens_in = usage.prompt_tokens if usage else "?"
+        tokens_out = usage.completion_tokens if usage else "?"
+        finish = response.choices[0].finish_reason
+        log.info(f"[llm] match response in {elapsed:.1f}s — {tokens_in} tok in, {tokens_out} tok out, finish={finish}")
         raw = raw.strip().removeprefix("```json").removesuffix("```").strip()
-        return json.loads(raw)
+        results = json.loads(raw)
+        log.info(f"[llm] match parsed OK — {len(results)} results")
+        return results
+    except json.JSONDecodeError as e:
+        elapsed = time.time() - t0
+        log.error(f"[llm] match JSON parse failed after {elapsed:.1f}s: {e} — raw: {raw[:500]}")
+        return []
     except Exception as e:
-        log.error(f"Batch matching error: {e}")
+        elapsed = time.time() - t0
+        log.error(f"[llm] match failed after {elapsed:.1f}s — {type(e).__name__}: {e}")
         return []
 
 

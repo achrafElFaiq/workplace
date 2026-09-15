@@ -155,6 +155,8 @@ def api_extract():
     if not text:
         return jsonify({"error": "no text"}), 400
     data = extract_job_data(text)
+    if data is None:
+        return jsonify({"error": "extraction failed"}), 422
     return jsonify({"data": data})
 
 

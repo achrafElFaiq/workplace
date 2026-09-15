@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 from datetime import date
 
 from openai import OpenAI
@@ -151,26 +152,37 @@ def _generate_paragraphs(application: dict, template: str) -> dict:
         seniority=application.get("seniority", ""),
         raw_text=application.get("raw_text") or "(non disponible)",
     )
+    model = get_openrouter_model()
+    company = application.get("company", "?")
+    position = application.get("position", "?")
+    log.info(f"[llm] cover letter — {company}/{position}, model={model}, prompt={len(prompt)} chars")
+    t0 = time.time()
     client = _get_client()
     response = client.chat.completions.create(
-        model=get_openrouter_model(),
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.4,
     )
-    raw = response.choices[0].message.content
+    elapsed = time.time() - t0
+    raw = response.choices[0].message.content or ""
+    usage = response.usage
+    tokens_in = usage.prompt_tokens if usage else "?"
+    tokens_out = usage.completion_tokens if usage else "?"
+    finish = response.choices[0].finish_reason
+    log.info(f"[llm] cover letter response in {elapsed:.1f}s — {tokens_in} tok in, {tokens_out} tok out, finish={finish}")
     raw = raw.strip()
     raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
     raw = re.sub(r"```$", "", raw).strip()
-    # The model sometimes prefixes the JSON with a conversational sentence
-    # ("Voici les 4 paragraphes...") — extract the {...} span regardless of
-    # what surrounds it, rather than assuming the response starts at "{".
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if match:
         raw = match.group(0)
     try:
-        return json.loads(raw)
+        data = json.loads(raw)
     except json.JSONDecodeError:
-        return json.loads(repair_json_backslashes(raw))
+        log.warning(f"[llm] cover letter JSON repair needed — raw: {raw[:300]}")
+        data = json.loads(repair_json_backslashes(raw))
+    log.info(f"[llm] cover letter parsed OK — {len(data)} paragraphs")
+    return data
 
 
 _BANNED_PHRASES = [

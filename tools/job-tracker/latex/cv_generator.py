@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 
 from openai import OpenAI
 
@@ -170,13 +171,24 @@ def _propose_edits(cv_tex: str, application: dict) -> list[dict]:
         raw_text=application.get("raw_text") or "(non disponible)",
         numbered_cv=_numbered_lines(cv_tex),
     )
+    model = get_openrouter_model()
+    company = application.get("company", "?")
+    position = application.get("position", "?")
+    log.info(f"[llm] CV edits — {company}/{position}, model={model}, prompt={len(prompt)} chars")
+    t0 = time.time()
     client = _get_client()
     response = client.chat.completions.create(
-        model=get_openrouter_model(),
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
     )
-    raw = response.choices[0].message.content
+    elapsed = time.time() - t0
+    raw = response.choices[0].message.content or ""
+    usage = response.usage
+    tokens_in = usage.prompt_tokens if usage else "?"
+    tokens_out = usage.completion_tokens if usage else "?"
+    finish = response.choices[0].finish_reason
+    log.info(f"[llm] CV response in {elapsed:.1f}s — {tokens_in} tok in, {tokens_out} tok out, finish={finish}")
     raw = raw.strip()
     raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
     raw = re.sub(r"```$", "", raw).strip()
@@ -186,8 +198,11 @@ def _propose_edits(cv_tex: str, application: dict) -> list[dict]:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
+        log.warning(f"[llm] CV JSON repair needed — raw: {raw[:300]}")
         data = json.loads(repair_json_backslashes(raw))
-    return data.get("edits", [])
+    edits = data.get("edits", [])
+    log.info(f"[llm] CV parsed OK — {len(edits)} edits proposed")
+    return edits
 
 
 def _normalize_for_match(s: str) -> str:
