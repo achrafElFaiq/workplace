@@ -25,5 +25,8 @@ agent_config.yaml
 # Data (local databases, generated files)
 data/
 
+# Logs (keep directory structure, ignore contents)
+logs/**/*.log
+
 # Claude Code
 .claude/

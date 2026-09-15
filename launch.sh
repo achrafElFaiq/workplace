@@ -2,7 +2,12 @@
 WORKSPACE_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOLS_DIR="$WORKSPACE_DIR/tools"
 PID_DIR="$WORKSPACE_DIR/.pids"
+LOG_DIR="$WORKSPACE_DIR/logs"
+TODAY=$(date +%Y-%m-%d)
 mkdir -p "$PID_DIR"
+
+# Clean logs older than 3 days
+find "$LOG_DIR" -name '*.log' -mtime +3 -delete 2>/dev/null
 
 echo "  [..] Stopping previous services..."
 for pidfile in "$PID_DIR"/*.pid; do
@@ -48,10 +53,12 @@ for manifest in "$TOOLS_DIR"/*/tool.yaml; do
         PORT=$((PORT + 1))
     fi
 
+    tool_log_dir="$LOG_DIR/$slug"
+    mkdir -p "$tool_log_dir"
     if [ "$tool_type" = "streamlit" ]; then
-        (cd "$TOOLS_DIR/$tool_dir" && uv run streamlit run app.py --server.port "$tool_port" --server.headless true) &
+        (cd "$TOOLS_DIR/$tool_dir" && uv run streamlit run app.py --server.port "$tool_port" --server.headless true) >> "$tool_log_dir/$TODAY.log" 2>&1 &
     else
-        (cd "$TOOLS_DIR/$tool_dir" && PORT="$tool_port" uv run python app.py) &
+        (cd "$TOOLS_DIR/$tool_dir" && PYTHONUNBUFFERED=1 PORT="$tool_port" uv run python app.py) >> "$tool_log_dir/$TODAY.log" 2>&1 &
     fi
     echo $! > "$PID_DIR/$slug.pid"; disown $!
     printf "  [ok] %-18s -> http://localhost:%s\n" "$tool_name" "$tool_port"
@@ -59,13 +66,15 @@ done
 
 # MCP Server (background)
 cd "$WORKSPACE_DIR"
-MCP_PORT=8510 uv run python mcp_server.py &
+mkdir -p "$LOG_DIR/mcp"
+MCP_PORT=8510 PYTHONUNBUFFERED=1 uv run python mcp_server.py >> "$LOG_DIR/mcp/$TODAY.log" 2>&1 &
 echo $! > "$PID_DIR/mcp.pid"; disown $!
 echo "  [ok] MCP Server         -> http://localhost:8510"
 
 # Portal (foreground)
+mkdir -p "$LOG_DIR/portal"
 echo "  [ok] Portal             -> http://localhost:8500"
-PORT=8500 uv run python portal.py
+PYTHONUNBUFFERED=1 PORT=8500 uv run python portal.py 2>&1 | tee -a "$LOG_DIR/portal/$TODAY.log"
 
 # Portal exited — clean up
 for pidfile in "$PID_DIR"/*.pid; do
