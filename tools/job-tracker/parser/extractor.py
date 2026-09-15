@@ -41,31 +41,30 @@ Règles :
 """
 
 
+def _call_llm(text: str) -> dict:
+    response = client.chat.completions.create(
+        model=OPENROUTER_MODEL,
+        messages=[
+            {"role": "system", "content": EXTRACTION_PROMPT},
+            {"role": "user", "content": text},
+        ],
+        temperature=0,
+    )
+    raw = response.choices[0].message.content
+    raw = raw.strip()
+    raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
+    raw = re.sub(r"```$", "", raw).strip()
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
+    if match:
+        raw = match.group(0)
+    return json.loads(raw)
+
+
 def extract_job_data(text: str) -> dict | None:
-    """Send raw job text to LLM and return structured data."""
-    try:
-        response = client.chat.completions.create(
-            model=OPENROUTER_MODEL,
-            messages=[
-                {"role": "system", "content": EXTRACTION_PROMPT},
-                {"role": "user", "content": text},
-            ],
-            temperature=0,
-        )
-        raw = response.choices[0].message.content
-        # Strip a markdown code fence regardless of language tag (```json,
-        # bare ```, etc.) — .removeprefix("```json") only matched that exact
-        # variant and silently left a bare ``` fence in place, breaking
-        # json.loads.
-        raw = raw.strip()
-        raw = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
-        raw = re.sub(r"```$", "", raw).strip()
-        # The model sometimes prefixes the JSON with a conversational
-        # sentence — extract the {...} span regardless of what surrounds it.
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            raw = match.group(0)
-        return json.loads(raw)
-    except (json.JSONDecodeError, Exception) as e:
-        print(f"Extraction error: {e}")
-        return None
+    """Send raw job text to LLM and return structured data. Retries once on failure."""
+    for attempt in range(2):
+        try:
+            return _call_llm(text)
+        except Exception as e:
+            print(f"Extraction error (attempt {attempt + 1}): {e}")
+    return None

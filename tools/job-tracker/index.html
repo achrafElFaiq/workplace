@@ -538,6 +538,19 @@ a:hover { text-decoration: underline; }
   <div id="add-step-confirm" class="hidden">
     <div id="confirm-header" class="info-box info-box-success mb-16"></div>
 
+    <!-- Manual fields (shown when extraction fails) -->
+    <div id="confirm-manual" class="hidden">
+      <div class="info-box info-box-warning mb-16">Extraction echouee — remplis au moins l'entreprise et le poste.</div>
+      <div class="form-row mb-16">
+        <div class="form-group"><label>Entreprise</label><input type="text" id="confirm-company" placeholder="Nom de l'entreprise"></div>
+        <div class="form-group"><label>Poste</label><input type="text" id="confirm-position" placeholder="Intitule du poste"></div>
+      </div>
+      <div class="form-row mb-16">
+        <div class="form-group"><label>Localisation</label><input type="text" id="confirm-location" placeholder="Ville, region..."></div>
+        <div class="form-group"><label>Contrat</label><input type="text" id="confirm-contract" placeholder="CDI, CDD, Stage..."></div>
+      </div>
+    </div>
+
     <div class="form-row mb-16">
       <div class="form-group">
         <label>Source</label>
@@ -894,9 +907,11 @@ async function addFromUrl() {
     showLoading('Extraction LLM...');
     const ext = await post('api/extract', { text: res.text });
     if (!ext.data) {
-      document.getElementById('add-url-fallback').value = url;
-      showAddStep('text');
-      toast('Extraction echouee. Essaie en collant le texte.');
+      extractedData = { company: '?', position: '?', url: url, raw_text: res.text };
+      pendingCV = null;
+      pendingLM = null;
+      toast('Extraction echouee — remplis manuellement.');
+      showConfirm();
       return;
     }
     ext.data.url = url;
@@ -920,7 +935,14 @@ async function addFromText() {
     const cleaned = await post('api/clean-text', { text });
     showLoading('Extraction LLM...');
     const ext = await post('api/extract', { text: cleaned.text });
-    if (!ext.data) { showAddStep('text'); toast('Extraction echouee.'); return; }
+    if (!ext.data) {
+      extractedData = { company: '?', position: '?', url: url, raw_text: cleaned.text };
+      pendingCV = null;
+      pendingLM = null;
+      toast('Extraction echouee — remplis manuellement.');
+      showConfirm();
+      return;
+    }
     ext.data.url = url;
     ext.data.raw_text = cleaned.text;
     extractedData = ext.data;
@@ -935,8 +957,18 @@ async function addFromText() {
 
 async function showConfirm() {
   showAddStep('confirm');
-  document.getElementById('confirm-header').textContent =
-    (extractedData.company || '?') + ' · ' + (extractedData.position || '?');
+  const isFallback = extractedData.company === '?' && extractedData.position === '?';
+  document.getElementById('confirm-manual').classList.toggle('hidden', !isFallback);
+  if (isFallback) {
+    document.getElementById('confirm-company').value = '';
+    document.getElementById('confirm-position').value = '';
+    document.getElementById('confirm-location').value = '';
+    document.getElementById('confirm-contract').value = '';
+    document.getElementById('confirm-header').textContent = 'Saisie manuelle';
+  } else {
+    document.getElementById('confirm-header').textContent =
+      (extractedData.company || '?') + ' · ' + (extractedData.position || '?');
+  }
   document.getElementById('confirm-json').textContent = JSON.stringify(extractedData, null, 2);
 
   // Keywords
@@ -1011,6 +1043,13 @@ function downloadLM() {
 
 async function saveApplication() {
   const data = { ...extractedData };
+  const manual = !document.getElementById('confirm-manual').classList.contains('hidden');
+  if (manual) {
+    data.company = document.getElementById('confirm-company').value.trim() || '?';
+    data.position = document.getElementById('confirm-position').value.trim() || '?';
+    data.location = document.getElementById('confirm-location').value.trim() || null;
+    data.contract_type = document.getElementById('confirm-contract').value.trim() || null;
+  }
   data.source = document.getElementById('confirm-source').value;
   data.applied_via_email = document.getElementById('confirm-email').value;
 

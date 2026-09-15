@@ -155,11 +155,19 @@ def install_tool(slug):
         except Exception as e:
             return jsonify({"error": f"build failed: {e}"}), 500
 
+    tool_dir = os.path.join(TOOLS_DIR, tool["dir"])
+    volumes = {}
+    for v in tool.get("volumes", []):
+        src, dest = v.split(":", 1)
+        host_path = os.path.abspath(os.path.join(tool_dir, src))
+        volumes[host_path] = {"bind": dest, "mode": "rw"}
+
     container = docker_client.containers.run(
         image_name,
         name=container_name,
         detach=True,
         restart_policy={"Name": "unless-stopped"},
+        volumes=volumes,
     )
 
     network = docker_client.networks.get(DOCKER_NETWORK)
