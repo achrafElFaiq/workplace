@@ -11,7 +11,7 @@ from db.queries import (
     list_contact_companies, list_contact_functions,
     add_document, list_documents, delete_document,
 )
-from config import GMAIL_EMAILS, DOCUMENTS_DIR
+from config import get_gmail_emails, DOCUMENTS_DIR
 
 app = Flask(__name__)
 init_db()
@@ -245,9 +245,12 @@ def api_get_config():
     except FileNotFoundError:
         cfg = {}
     return jsonify({
-        "openrouter_api_key": cfg.get("openrouter_api_key", ""),
+        "has_api_key": bool(cfg.get("openrouter_api_key")),
         "openrouter_model": cfg.get("openrouter_model", "google/gemini-2.5-flash"),
-        "gmail_accounts": cfg.get("gmail_accounts", []),
+        "gmail_accounts": [
+            {"address": a.get("address", ""), "has_password": bool(a.get("app_password"))}
+            for a in (cfg.get("gmail_accounts") or [])
+        ],
     })
 
 
@@ -261,9 +264,21 @@ def api_save_config():
     except FileNotFoundError:
         cfg = {}
     data = request.json
-    cfg["openrouter_api_key"] = data.get("openrouter_api_key", "")
+    new_key = data.get("openrouter_api_key", "").strip()
+    if new_key:
+        cfg["openrouter_api_key"] = new_key
     cfg["openrouter_model"] = data.get("openrouter_model", "google/gemini-2.5-flash")
-    cfg["gmail_accounts"] = data.get("gmail_accounts", [])
+    old_accounts = {a.get("address"): a for a in (cfg.get("gmail_accounts") or [])}
+    new_accounts = []
+    for a in data.get("gmail_accounts", []):
+        addr = a.get("address", "").strip()
+        if not addr:
+            continue
+        pwd = a.get("app_password", "").strip()
+        if not pwd:
+            pwd = old_accounts.get(addr, {}).get("app_password", "")
+        new_accounts.append({"address": addr, "app_password": pwd})
+    cfg["gmail_accounts"] = new_accounts
     with open(CONFIG_PATH, "w") as f:
         yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
     return jsonify({"ok": True})
@@ -271,7 +286,7 @@ def api_save_config():
 
 @app.route("/api/gmail-emails")
 def api_gmail_emails():
-    return jsonify(GMAIL_EMAILS)
+    return jsonify(get_gmail_emails())
 
 
 # ── LaTeX Generation ──

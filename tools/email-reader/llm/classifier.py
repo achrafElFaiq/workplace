@@ -3,15 +3,10 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from openai import OpenAI
-from config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, OPENROUTER_MODEL
+from config import OPENROUTER_BASE_URL, get_openrouter_api_key, get_openrouter_model
 from logger import get_logger
 
 log = get_logger("llm.classifier")
-
-client = OpenAI(
-    api_key=OPENROUTER_API_KEY,
-    base_url=OPENROUTER_BASE_URL,
-)
 
 CATEGORIES = ("action", "finance", "personal", "alert", "update")
 
@@ -53,6 +48,10 @@ Return JSON array, one object per email:
 ]"""
 
 
+def _get_client() -> OpenAI:
+    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL)
+
+
 def classify_batch(emails: list[dict]) -> list[dict]:
     """
     Classify a batch of emails. Returns list of results with:
@@ -69,8 +68,9 @@ def classify_batch(emails: list[dict]) -> list[dict]:
     prompt = USER_TEMPLATE.format(emails_list=emails_list)
 
     try:
+        client = _get_client()
         response = client.chat.completions.create(
-            model=OPENROUTER_MODEL,
+            model=get_openrouter_model(),
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},

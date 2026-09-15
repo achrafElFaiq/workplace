@@ -1629,27 +1629,30 @@ let gmailRowCount = 0;
 
 async function loadConfig() {
   const cfg = await json('api/config');
-  document.getElementById('cfg-api-key').value = cfg.openrouter_api_key || '';
+  const keyInput = document.getElementById('cfg-api-key');
+  keyInput.value = '';
+  keyInput.placeholder = cfg.has_api_key ? '••••••••  (leave empty to keep)' : 'paste API key';
   document.getElementById('cfg-model').value = cfg.openrouter_model || 'google/gemini-2.5-flash';
 
   const accounts = cfg.gmail_accounts || [];
   gmailRowCount = 0;
   document.getElementById('gmail-accounts').innerHTML = '';
   if (accounts.length) {
-    accounts.forEach(a => addGmailRow(a.address, a.app_password));
+    accounts.forEach(a => addGmailRow(a.address, '', a.has_password));
   } else {
     addGmailRow();
   }
 }
 
-function addGmailRow(addr, pwd) {
+function addGmailRow(addr, pwd, hasPwd) {
   const i = gmailRowCount++;
   const el = document.getElementById('gmail-accounts');
   const row = document.createElement('div');
   row.className = 'form-row mb-8';
   row.id = 'gmail-row-' + i;
+  const pwdPlaceholder = hasPwd ? '••••••••  (leave empty to keep)' : 'app password';
   row.innerHTML = '<div class="form-group"><label>Address ' + (i + 1) + '</label><input type="text" id="gmail-addr-' + i + '" value="' + esc(addr || '') + '"></div>' +
-    '<div class="form-group"><label>App password ' + (i + 1) + '</label><input type="password" id="gmail-pwd-' + i + '" value="' + esc(pwd || '') + '"></div>' +
+    '<div class="form-group"><label>App password ' + (i + 1) + '</label><input type="password" id="gmail-pwd-' + i + '" value="' + esc(pwd || '') + '" placeholder="' + pwdPlaceholder + '"></div>' +
     '<div style="padding-top:22px;"><button class="btn btn-sm btn-danger" onclick="removeGmailRow(' + i + ')">[x]</button></div>';
   el.appendChild(row);
 }
@@ -1665,16 +1668,23 @@ async function saveConfig() {
     const inputs = row.querySelectorAll('input');
     const addr = inputs[0]?.value?.trim();
     const pwd = inputs[1]?.value?.trim();
-    if (addr) accounts.push({ address: addr, app_password: pwd || '' });
+    if (addr) {
+      const entry = { address: addr };
+      if (pwd) entry.app_password = pwd;
+      accounts.push(entry);
+    }
   });
 
-  await post('api/config', {
-    openrouter_api_key: document.getElementById('cfg-api-key').value.trim(),
+  const data = {
     openrouter_model: document.getElementById('cfg-model').value.trim() || 'google/gemini-2.5-flash',
     gmail_accounts: accounts,
-  });
+  };
+  const apiKey = document.getElementById('cfg-api-key').value.trim();
+  if (apiKey) data.openrouter_api_key = apiKey;
 
-  document.getElementById('config-msg').innerHTML = '<div class="info-box info-box-success">[ok] Config saved — restart to apply</div>';
+  await post('api/config', data);
+
+  document.getElementById('config-msg').innerHTML = '<div class="info-box info-box-success">[ok] Config saved</div>';
   setTimeout(() => document.getElementById('config-msg').innerHTML = '', 4000);
 }
 

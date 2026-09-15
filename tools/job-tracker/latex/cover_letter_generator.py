@@ -9,9 +9,9 @@ from config import (
     CV_TEX_PATH,
     COVER_LETTER_GUIDE_PATH,
     COVER_LETTER_TEMPLATE_PATH,
-    OPENROUTER_API_KEY,
     OPENROUTER_BASE_URL,
-    OPENROUTER_MODEL,
+    get_openrouter_api_key,
+    get_openrouter_model,
 )
 from latex.compiler import compile_tex
 from latex.edits import repair_json_backslashes
@@ -19,7 +19,9 @@ from logger import get_logger
 
 log = get_logger("latex.cover_letter_generator")
 
-client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL, timeout=90)
+
+def _get_client() -> OpenAI:
+    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL, timeout=90)
 
 # Placeholders as they literally appear in data/cover_letter_template.tex.
 # The template also carries per-paragraph guidance as LaTeX comments (%...)
@@ -149,8 +151,9 @@ def _generate_paragraphs(application: dict, template: str) -> dict:
         seniority=application.get("seniority", ""),
         raw_text=application.get("raw_text") or "(non disponible)",
     )
+    client = _get_client()
     response = client.chat.completions.create(
-        model=OPENROUTER_MODEL,
+        model=get_openrouter_model(),
         messages=[{"role": "user", "content": prompt}],
         temperature=0.4,
     )

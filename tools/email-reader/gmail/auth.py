@@ -2,11 +2,11 @@ import imaplib
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config import GMAIL_ACCOUNTS
+from config import get_gmail_accounts
 
 
 def get_imap_connection(account_name: str) -> imaplib.IMAP4_SSL:
-    account = next((a for a in GMAIL_ACCOUNTS if a["name"] == account_name), None)
+    account = next((a for a in get_gmail_accounts() if a["name"] == account_name), None)
     if not account:
         raise ValueError(f"Account '{account_name}' not found in config")
     if not account["address"] or not account["app_password"]:

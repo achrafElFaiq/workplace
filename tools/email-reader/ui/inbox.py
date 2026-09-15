@@ -7,7 +7,7 @@ from db.queries import (
     delete_email, delete_emails_by_sender, get_email_by_id,
 )
 from blocked import add_blocked_sender
-from config import GMAIL_ACCOUNTS
+from config import get_gmail_accounts
 from ui.style import CATEGORY_COLORS, CATEGORY_LABELS
 
 
@@ -140,8 +140,9 @@ def render_inbox():
             label_visibility="collapsed",
         )
     with col2:
-        account_options = ["all"] + [acc["name"] for acc in GMAIL_ACCOUNTS]
-        account_labels = {"all": "[all accounts]"} | {acc["name"]: acc["address"] for acc in GMAIL_ACCOUNTS}
+        _accounts = get_gmail_accounts()
+        account_options = ["all"] + [acc["name"] for acc in _accounts]
+        account_labels = {"all": "[all accounts]"} | {acc["name"]: acc["address"] for acc in _accounts}
         account = st.selectbox(
             "account",
             options=account_options,

@@ -8,10 +8,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 
 def _load_last_check() -> dict:
-    from config import GMAIL_ACCOUNTS
+    from config import get_gmail_accounts
     from db.queries import get_meta
     result = {}
-    for acc in GMAIL_ACCOUNTS:
+    for acc in get_gmail_accounts():
         val = get_meta(f"last_check_{acc['name']}")
         if val:
             result[acc["name"]] = val
@@ -32,10 +32,10 @@ def render_sync():
 
     # Show last-checked status per account
     last_check = _load_last_check()
-    from config import GMAIL_ACCOUNTS
+    from config import get_gmail_accounts
     if last_check:
         lines = []
-        for acc in GMAIL_ACCOUNTS:
+        for acc in get_gmail_accounts():
             name = acc["name"]
             date = last_check.get(name)
             lines.append(

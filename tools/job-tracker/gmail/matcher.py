@@ -6,14 +6,13 @@ from openai import OpenAI
 from db.queries import list_applications, add_email, update_status, get_known_email_ids
 from gmail.fetcher import fetch_recent_emails
 from logger import get_logger
-from config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, OPENROUTER_MODEL, GMAIL_ACCOUNTS
+from config import OPENROUTER_BASE_URL, get_openrouter_api_key, get_openrouter_model, get_gmail_accounts
 
 log = get_logger("gmail.matcher")
 
-client = OpenAI(
-    api_key=OPENROUTER_API_KEY,
-    base_url=OPENROUTER_BASE_URL,
-)
+
+def _get_client() -> OpenAI:
+    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL)
 
 IGNORED_DOMAINS_FILE = "data/ignored_domains.txt"
 
@@ -78,8 +77,9 @@ Si un email ne correspond à aucune candidature, mets application_id à null.
 """
 
     try:
+        client = _get_client()
         response = client.chat.completions.create(
-            model=OPENROUTER_MODEL,
+            model=get_openrouter_model(),
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
         )
@@ -117,7 +117,7 @@ def sync_emails() -> dict:
     known_ids = get_known_email_ids()
     log.info(f"{len(known_ids)} emails déjà enregistrés en base")
 
-    for account in [acc["name"] for acc in GMAIL_ACCOUNTS]:
+    for account in [acc["name"] for acc in get_gmail_accounts()]:
 
         try:
             emails = fetch_recent_emails(account)

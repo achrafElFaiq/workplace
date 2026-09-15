@@ -12,7 +12,7 @@ from db.queries import (
     delete_email, delete_emails_by_sender, get_email_by_id, get_meta,
 )
 from blocked import add_blocked_sender, list_blocked, remove_blocked_sender
-from config import GMAIL_ACCOUNTS, CONFIG_PATH
+from config import get_gmail_accounts, CONFIG_PATH
 
 app = Flask(__name__)
 init_db()
@@ -95,7 +95,7 @@ def api_sync():
 @app.route("/api/sync/status")
 def api_sync_status():
     result = {}
-    for acc in GMAIL_ACCOUNTS:
+    for acc in get_gmail_accounts():
         val = get_meta(f"last_check_{acc['name']}")
         result[acc["name"]] = {"address": acc["address"], "last_check": val}
     return jsonify(result)
@@ -129,7 +129,7 @@ def api_unblock():
 
 @app.route("/api/accounts")
 def api_accounts():
-    return jsonify([{"name": a["name"], "address": a["address"]} for a in GMAIL_ACCOUNTS])
+    return jsonify([{"name": a["name"], "address": a["address"]} for a in get_gmail_accounts()])
 
 
 # ── Config ──
@@ -163,12 +163,23 @@ def api_save_config():
     except FileNotFoundError:
         cfg = {}
 
-    if "openrouter_api_key" in data:
-        cfg["openrouter_api_key"] = data["openrouter_api_key"]
+    new_key = (data.get("openrouter_api_key") or "").strip()
+    if new_key:
+        cfg["openrouter_api_key"] = new_key
     if "openrouter_model" in data:
         cfg["openrouter_model"] = data["openrouter_model"]
     if "gmail_accounts" in data:
-        cfg["gmail_accounts"] = data["gmail_accounts"]
+        old_accounts = {a.get("address"): a for a in (cfg.get("gmail_accounts") or [])}
+        new_accounts = []
+        for a in data["gmail_accounts"]:
+            addr = (a.get("address") or "").strip()
+            if not addr:
+                continue
+            pwd = (a.get("app_password") or "").strip()
+            if not pwd:
+                pwd = old_accounts.get(addr, {}).get("app_password", "")
+            new_accounts.append({"address": addr, "app_password": pwd})
+        cfg["gmail_accounts"] = new_accounts
 
     with open(CONFIG_PATH, "w") as f:
         yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)

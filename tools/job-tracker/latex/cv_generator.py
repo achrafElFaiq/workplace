@@ -4,14 +4,16 @@ import re
 
 from openai import OpenAI
 
-from config import CV_RULES_PATH, CV_TEX_PATH, OPENROUTER_API_KEY, OPENROUTER_BASE_URL, OPENROUTER_MODEL
+from config import CV_RULES_PATH, CV_TEX_PATH, OPENROUTER_BASE_URL, get_openrouter_api_key, get_openrouter_model
 from latex.compiler import compile_tex
 from latex.edits import repair_json_backslashes
 from logger import get_logger
 
 log = get_logger("latex.cv_generator")
 
-client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL, timeout=90)
+
+def _get_client() -> OpenAI:
+    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL, timeout=90)
 
 # The actual tailoring rules live in data/guide/cv_change_rules.md
 # (user-owned, gitignored) — this is the fixed scaffolding around them.
@@ -168,8 +170,9 @@ def _propose_edits(cv_tex: str, application: dict) -> list[dict]:
         raw_text=application.get("raw_text") or "(non disponible)",
         numbered_cv=_numbered_lines(cv_tex),
     )
+    client = _get_client()
     response = client.chat.completions.create(
-        model=OPENROUTER_MODEL,
+        model=get_openrouter_model(),
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
     )

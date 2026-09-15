@@ -1,12 +1,7 @@
 import json
 import re
 from openai import OpenAI
-from config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, OPENROUTER_MODEL
-
-client = OpenAI(
-    api_key=OPENROUTER_API_KEY,
-    base_url=OPENROUTER_BASE_URL,
-)
+from config import OPENROUTER_BASE_URL, get_openrouter_api_key, get_openrouter_model
 
 EXTRACTION_PROMPT = """Tu es un parser d'offres d'emploi. Extrais les informations suivantes du texte fourni et retourne UNIQUEMENT un JSON valide, sans markdown, sans commentaire.
 
@@ -41,9 +36,14 @@ Règles :
 """
 
 
+def _get_client() -> OpenAI:
+    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL)
+
+
 def _call_llm(text: str) -> dict:
+    client = _get_client()
     response = client.chat.completions.create(
-        model=OPENROUTER_MODEL,
+        model=get_openrouter_model(),
         messages=[
             {"role": "system", "content": EXTRACTION_PROMPT},
             {"role": "user", "content": text},

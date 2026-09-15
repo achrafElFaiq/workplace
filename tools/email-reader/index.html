@@ -893,7 +893,7 @@ async function saveConfig() {
   if (apiKey) data.openrouter_api_key = apiKey;
 
   await post('api/config', data);
-  toast('[ok] Config saved — restart to apply');
+  toast('[ok] Config saved');
 }
 
 // ── Custom Selects ──

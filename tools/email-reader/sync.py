@@ -6,7 +6,7 @@ import os
 import sys
 from datetime import datetime
 
-from config import GMAIL_ACCOUNTS, IGNORED_DOMAINS_FILE
+from config import get_gmail_accounts, IGNORED_DOMAINS_FILE
 from db.queries import save_email, get_known_gmail_ids
 from gmail.fetcher import fetch_recent_emails
 from llm.classifier import classify_batch
@@ -51,10 +51,11 @@ def run_sync(force_days: int = None) -> dict:
     blocked_senders = get_blocked_senders()
     known_ids = get_known_gmail_ids()
 
-    log.info(f"[sync] Starting sync — {len(GMAIL_ACCOUNTS)} account(s)")
+    accounts = get_gmail_accounts()
+    log.info(f"[sync] Starting sync — {len(accounts)} account(s)")
     log.info(f"[sync] {len(ignored_domains)} ignored domains, {len(blocked_senders)} blocked senders, {len(known_ids)} known emails in DB")
 
-    for account in GMAIL_ACCOUNTS:
+    for account in accounts:
         account_name = account["name"]
         log.info(f"[sync] --- Account: {account_name} ({account['address']}) ---")
 
