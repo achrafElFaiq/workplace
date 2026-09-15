@@ -25,6 +25,7 @@ services:
     - WORKSPACE_DOCKER=1
     - DOCKER_NETWORK=workspace_default
     - COMPOSE_PROJECT=workspace
+    - HOST_TOOLS_DIR=${HOST_TOOLS_DIR:-${PWD}/tools}
     - PYTHONUNBUFFERED=1
     command: >-
       sh -c "find /app/logs -name '*.log' -mtime +3 -delete 2>/dev/null;

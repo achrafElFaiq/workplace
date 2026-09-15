@@ -6,6 +6,7 @@ import yaml
 
 app = Flask(__name__)
 TOOLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
+HOST_TOOLS_DIR = os.environ.get("HOST_TOOLS_DIR", TOOLS_DIR)
 DOCKER_MODE = os.environ.get("WORKSPACE_DOCKER", "") == "1"
 DOCKER_NETWORK = os.environ.get("DOCKER_NETWORK", "workspace_default")
 COMPOSE_PROJECT = os.environ.get("COMPOSE_PROJECT", "workspace")
@@ -50,7 +51,7 @@ def _is_running(slug: str) -> bool:
     try:
         c = docker_client.containers.get(_container_name(slug))
         return c.status == "running"
-    except docker.errors.NotFound:
+    except (docker.errors.NotFound, docker.errors.APIError):
         return False
 
 
@@ -140,8 +141,14 @@ def install_tool(slug):
         existing = docker_client.containers.get(container_name)
         if existing.status == "running":
             return jsonify({"status": "already_running"})
-        existing.start()
-        return jsonify({"status": "started"})
+        try:
+            existing.stop(timeout=3)
+        except Exception:
+            pass
+        try:
+            existing.remove(force=True)
+        except Exception:
+            pass
     except docker.errors.NotFound:
         pass
 
@@ -156,21 +163,33 @@ def install_tool(slug):
             return jsonify({"error": f"build failed: {e}"}), 500
 
     tool_dir = os.path.join(TOOLS_DIR, tool["dir"])
-    volumes = {}
+    host_tool_dir = os.path.join(HOST_TOOLS_DIR, tool["dir"])
+    binds = {}
     for v in tool.get("volumes", []):
         src, dest = v.split(":", 1)
-        host_path = os.path.abspath(os.path.join(tool_dir, src))
-        volumes[host_path] = {"bind": dest, "mode": "rw"}
+        container_path = os.path.abspath(os.path.join(tool_dir, src))
+        host_path = os.path.abspath(os.path.join(host_tool_dir, src))
+        if not os.path.exists(container_path):
+            if "." in os.path.basename(src):
+                os.makedirs(os.path.dirname(container_path), exist_ok=True)
+                open(container_path, "a").close()
+            else:
+                os.makedirs(container_path, exist_ok=True)
+        binds[host_path] = {"bind": dest, "mode": "rw"}
+
+    try:
+        network = docker_client.networks.get(DOCKER_NETWORK)
+    except docker.errors.NotFound:
+        return jsonify({"error": "docker network not found"}), 500
 
     container = docker_client.containers.run(
         image_name,
         name=container_name,
         detach=True,
         restart_policy={"Name": "unless-stopped"},
-        volumes=volumes,
+        volumes=binds,
     )
 
-    network = docker_client.networks.get(DOCKER_NETWORK)
     network.connect(container, aliases=[slug])
 
     return jsonify({"status": "installed"})
@@ -189,8 +208,11 @@ def uninstall_tool(slug):
     container_name = _container_name(slug)
     try:
         container = docker_client.containers.get(container_name)
-        container.stop(timeout=5)
-        container.remove()
+        try:
+            container.stop(timeout=5)
+        except Exception:
+            pass
+        container.remove(force=True)
         return jsonify({"status": "uninstalled"})
     except docker.errors.NotFound:
         return jsonify({"status": "not_installed"})
