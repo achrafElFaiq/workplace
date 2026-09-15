@@ -42,7 +42,7 @@ Règles :
 
 
 def _get_client() -> OpenAI:
-    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL)
+    return OpenAI(api_key=get_openrouter_api_key(), base_url=OPENROUTER_BASE_URL, timeout=60)
 
 
 def _call_llm(text: str, attempt: int) -> dict:
